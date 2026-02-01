@@ -1,10 +1,10 @@
 import { configureStore } from "@reduxjs/toolkit";
-import readerSlice from "./readerSlice";
-import persistedStateStorage from "./persistedState";
+import { readerSlice } from "./readerSlice";
+import { persistedStateStorage } from "./persistedState";
 
 const preloadedState = persistedStateStorage.load();
 
-const store = configureStore({
+export const store = configureStore({
   reducer: {
     reader: readerSlice.reducer
   },
@@ -18,5 +18,3 @@ const handleStoreUpdate = (): void => {
 };
 
 store.subscribe(handleStoreUpdate);
-
-export default store;

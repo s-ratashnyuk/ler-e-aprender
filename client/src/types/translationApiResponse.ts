@@ -1,4 +1,4 @@
-type translationApiResponse = {
+export type translationApiResponse = {
   Translation: string;
   PartOfSpeech: string;
   Example: string;
@@ -6,5 +6,3 @@ type translationApiResponse = {
   IsIrregular: boolean;
   OtherForms: string;
 };
-
-export type { translationApiResponse as default };

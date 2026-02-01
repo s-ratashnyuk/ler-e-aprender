@@ -1,6 +1,6 @@
-import type textToken from "../../types/textToken";
+import type { textToken } from "../../types/textToken";
 
-const findNearestWordToken = (tokens: textToken[], tokenIndex: number): textToken | null => {
+export const findNearestWordToken = (tokens: textToken[], tokenIndex: number): textToken | null => {
   const clickedToken = tokens[tokenIndex];
 
   if (!clickedToken) {
@@ -52,5 +52,3 @@ const findNearestWordToken = (tokens: textToken[], tokenIndex: number): textToke
 
   return leftLength > rightLength ? leftWord : rightWord;
 };
-
-export default findNearestWordToken;

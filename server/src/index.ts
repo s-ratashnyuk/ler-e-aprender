@@ -3,44 +3,44 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { serve } from "@hono/node-server";
 import OpenAI from "openai";
-import CreateTranslation from "./openai/CreateTranslation";
-import ParseTranslationRequest from "./utils/ParseTranslationRequest";
-import RequireEnv from "./utils/RequireEnv";
+import { createTranslation } from "./openai/CreateTranslation";
+import { parseTranslationRequest } from "./utils/ParseTranslationRequest";
+import { requireEnv } from "./utils/RequireEnv";
 
-const OpenAiKey = RequireEnv("OPENAI_API_KEY");
-const OpenAiClient = new OpenAI({ apiKey: OpenAiKey });
+const openAiKey = requireEnv("OPENAI_API_KEY");
+const openAiClient = new OpenAI({ apiKey: openAiKey });
 
-const App = new Hono();
+const app = new Hono();
 
-App.use(
+app.use(
   "*",
   cors({
     origin: "http://localhost:5173"
   })
 );
 
-App.get("/health", (Context): Response => {
-  return Context.json({ Status: "ok" });
+app.get("/health", (context): Response => {
+  return context.json({ Status: "ok" });
 });
 
-App.post("/api/translate", async (Context): Promise<Response> => {
-  const Body = await Context.req.json();
-  const TranslationRequest = ParseTranslationRequest(Body);
+app.post("/api/translate", async (context): Promise<Response> => {
+  const body = await context.req.json();
+  const translationRequest = parseTranslationRequest(body);
 
-  if (!TranslationRequest) {
-    return Context.json({ Error: "Invalid request." }, 400);
+  if (!translationRequest) {
+    return context.json({ Error: "Invalid request." }, 400);
   }
 
   try {
-    const Translation = await CreateTranslation(OpenAiClient, TranslationRequest);
-    return Context.json(Translation);
+    const translation = await createTranslation(openAiClient, translationRequest);
+    return context.json(translation);
   } catch (error) {
-    const Message = error instanceof Error ? error.message : "Translation failed.";
-    return Context.json({ Error: Message }, 500);
+    const message = error instanceof Error ? error.message : "Translation failed.";
+    return context.json({ Error: message }, 500);
   }
 });
 
-const Port = Number(process.env.PORT ?? "8787");
-serve({ fetch: App.fetch, port: Port });
+const port = Number(process.env.PORT ?? "8787");
+serve({ fetch: app.fetch, port });
 
-console.log(`Server running on http://localhost:${Port}`);
+console.log(`Server running on http://localhost:${port}`);

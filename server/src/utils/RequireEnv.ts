@@ -1,9 +1,7 @@
-const RequireEnv = (Key: string): string => {
-  const Value = process.env[Key];
-  if (!Value) {
-    throw new Error(`Missing required env var: ${Key}`);
+export const requireEnv = (key: string): string => {
+  const value = process.env[key];
+  if (!value) {
+    throw new Error(`Missing required env var: ${key}`);
   }
-  return Value;
+  return value;
 };
-
-export default RequireEnv;

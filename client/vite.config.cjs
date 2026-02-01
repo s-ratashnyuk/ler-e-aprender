@@ -1,5 +1,5 @@
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
+const { defineConfig } = require("vite");
+const react = require("@vitejs/plugin-react");
 
 const config = defineConfig({
   plugins: [react()],
@@ -11,4 +11,4 @@ const config = defineConfig({
   }
 });
 
-export default config;
+module.exports = config;

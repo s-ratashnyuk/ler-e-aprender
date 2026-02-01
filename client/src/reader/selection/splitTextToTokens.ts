@@ -1,6 +1,6 @@
-import type textToken from "../../types/textToken";
+import type { textToken } from "../../types/textToken";
 
-const splitTextToTokens = (rawText: string): textToken[] => {
+export const splitTextToTokens = (rawText: string): textToken[] => {
   const wordRegex = /[\p{L}\p{M}0-9]+(?:[’'\-][\p{L}\p{M}0-9]+)*/gu;
   const tokens: textToken[] = [];
   let cursorIndex = 0;
@@ -45,5 +45,3 @@ const splitTextToTokens = (rawText: string): textToken[] => {
 
   return tokens;
 };
-
-export default splitTextToTokens;

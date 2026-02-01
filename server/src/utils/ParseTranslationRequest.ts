@@ -1,34 +1,32 @@
-import type TranslationRequest from "../contracts/TranslationRequest";
+import type { translationRequest } from "../contracts/TranslationRequest";
 
-const ParseTranslationRequest = (Value: unknown): TranslationRequest | null => {
-  if (!Value || typeof Value !== "object") {
+export const parseTranslationRequest = (value: unknown): translationRequest | null => {
+  if (!value || typeof value !== "object") {
     return null;
   }
 
-  const RecordValue = Value as Record<string, unknown>;
-  const Word = RecordValue.Word;
-  const ContextLeft = RecordValue.ContextLeft;
-  const ContextRight = RecordValue.ContextRight;
-  const SourceLanguage = RecordValue.SourceLanguage;
-  const TargetLanguage = RecordValue.TargetLanguage;
+  const recordValue = value as Record<string, unknown>;
+  const word = recordValue.Word;
+  const contextLeft = recordValue.ContextLeft;
+  const contextRight = recordValue.ContextRight;
+  const sourceLanguage = recordValue.SourceLanguage;
+  const targetLanguage = recordValue.TargetLanguage;
 
   if (
-    typeof Word !== "string" ||
-    typeof ContextLeft !== "string" ||
-    typeof ContextRight !== "string" ||
-    typeof SourceLanguage !== "string" ||
-    typeof TargetLanguage !== "string"
+    typeof word !== "string" ||
+    typeof contextLeft !== "string" ||
+    typeof contextRight !== "string" ||
+    typeof sourceLanguage !== "string" ||
+    typeof targetLanguage !== "string"
   ) {
     return null;
   }
 
   return {
-    Word,
-    ContextLeft,
-    ContextRight,
-    SourceLanguage,
-    TargetLanguage
+    Word: word,
+    ContextLeft: contextLeft,
+    ContextRight: contextRight,
+    SourceLanguage: sourceLanguage,
+    TargetLanguage: targetLanguage
   };
 };
-
-export default ParseTranslationRequest;

@@ -1,4 +1,4 @@
-type translationEntry = {
+export type translationEntry = {
   id: string;
   word: string;
   contextLeft: string;
@@ -11,5 +11,3 @@ type translationEntry = {
   otherForms: string;
   timestamp: number;
 };
-
-export type { translationEntry as default };

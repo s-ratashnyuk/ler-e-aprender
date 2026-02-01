@@ -1,5 +1,3 @@
-import type store from "../store/store";
+import type { store } from "../store/store";
 
-type rootState = ReturnType<store["getState"]>;
-
-export type { rootState as default };
+export type rootState = ReturnType<typeof store.getState>;

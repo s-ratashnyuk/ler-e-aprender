@@ -1,12 +1,10 @@
-const ExtractFirstJsonObject = (Text: string): string => {
-  const StartIndex = Text.indexOf("{");
-  const EndIndex = Text.lastIndexOf("}");
+export const extractFirstJsonObject = (text: string): string => {
+  const startIndex = text.indexOf("{");
+  const endIndex = text.lastIndexOf("}");
 
-  if (StartIndex === -1 || EndIndex === -1 || EndIndex <= StartIndex) {
+  if (startIndex === -1 || endIndex === -1 || endIndex <= startIndex) {
     throw new Error("No JSON object found in response.");
   }
 
-  return Text.slice(StartIndex, EndIndex + 1);
+  return text.slice(startIndex, endIndex + 1);
 };
-
-export default ExtractFirstJsonObject;

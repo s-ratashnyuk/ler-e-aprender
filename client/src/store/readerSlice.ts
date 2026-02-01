@@ -1,8 +1,8 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
-import type bookEntry from "../types/bookEntry";
-import type readerState from "../types/readerState";
-import type readingProgressPayload from "../types/readingProgressPayload";
-import type translationPayload from "../types/translationPayload";
+import type { bookEntry } from "../types/bookEntry";
+import type { readerState } from "../types/readerState";
+import type { readingProgressPayload } from "../types/readingProgressPayload";
+import type { translationPayload } from "../types/translationPayload";
 
 const defaultBook: bookEntry = {
   id: "book-1",
@@ -17,7 +17,7 @@ const initialState: readerState = {
   progressByBook: {}
 };
 
-const readerSlice = createSlice({
+export const readerSlice = createSlice({
   name: "reader",
   initialState,
   reducers: {
@@ -36,5 +36,3 @@ const readerSlice = createSlice({
     }
   }
 });
-
-export default readerSlice;

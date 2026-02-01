@@ -1,8 +1,6 @@
-import type translationEntry from "./translationEntry";
+import type { translationEntry } from "./translationEntry";
 
-type translationPayload = {
+export type translationPayload = {
   bookId: string;
   entry: translationEntry;
 };
-
-export type { translationPayload as default };

@@ -1,4 +1,4 @@
-const BuildSystemInstructions = (): string => {
+export const buildSystemInstructions = (): string => {
   return [
     "You are a concise translation assistant for language learners.",
     "Return a JSON object only with keys: Translation, PartOfSpeech, Example, VerbForm, IsIrregular, OtherForms.",
@@ -11,5 +11,3 @@ const BuildSystemInstructions = (): string => {
     "Keep the output concise and suitable for a popup; no extra keys or commentary."
   ].join("\n");
 };
-
-export default BuildSystemInstructions;

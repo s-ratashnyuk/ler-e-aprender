@@ -1,10 +1,8 @@
-import type translationResponse from "./translationResponse";
+import type { translationResponse } from "./translationResponse";
 
-type popupState = {
+export type popupState = {
   isOpen: boolean;
   statusText: string;
   word: string;
   response: translationResponse | null;
 };
-
-export type { popupState as default };

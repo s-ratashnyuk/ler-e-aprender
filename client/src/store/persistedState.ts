@@ -1,4 +1,4 @@
-import type readerState from "../types/readerState";
+import type { readerState } from "../types/readerState";
 
 type persistedState = {
   reader: readerState;
@@ -35,9 +35,7 @@ const savePersistedState = (state: persistedState): void => {
   }
 };
 
-const persistedStateStorage = {
+export const persistedStateStorage = {
   load: loadPersistedState,
   save: savePersistedState
 };
-
-export default persistedStateStorage;

@@ -1,7 +1,7 @@
-import type translationRequest from "../types/translationRequest";
-import type translationResponse from "../types/translationResponse";
-import type translationApiRequest from "../types/translationApiRequest";
-import type translationApiResponse from "../types/translationApiResponse";
+import type { translationRequest } from "../types/translationRequest";
+import type { translationResponse } from "../types/translationResponse";
+import type { translationApiRequest } from "../types/translationApiRequest";
+import type { translationApiResponse } from "../types/translationApiResponse";
 
 const mapRequestToApi = (payload: translationRequest): translationApiRequest => {
   return {
@@ -24,7 +24,7 @@ const mapResponseFromApi = (payload: translationApiResponse): translationRespons
   };
 };
 
-const translateWord = async (payload: translationRequest): Promise<translationResponse> => {
+export const translateWord = async (payload: translationRequest): Promise<translationResponse> => {
   const response = await fetch("/api/translate", {
     method: "POST",
     headers: {
@@ -41,4 +41,3 @@ const translateWord = async (payload: translationRequest): Promise<translationRe
   return mapResponseFromApi(data);
 };
 
-export default translateWord;

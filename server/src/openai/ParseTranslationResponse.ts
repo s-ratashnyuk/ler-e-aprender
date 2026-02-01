@@ -1,28 +1,33 @@
-import type TranslationResponse from "../contracts/TranslationResponse";
-import ExtractFirstJsonObject from "../utils/ExtractFirstJsonObject";
+import type { translationResponse } from "../contracts/TranslationResponse";
+import { extractFirstJsonObject } from "../utils/ExtractFirstJsonObject";
 
-const ParseTranslationResponse = (OutputText: string): TranslationResponse => {
-  const JsonText = ExtractFirstJsonObject(OutputText);
-  const Parsed = JSON.parse(JsonText) as Record<string, unknown>;
-  const Translation = Parsed.Translation;
-  const PartOfSpeech = Parsed.PartOfSpeech;
-  const Example = Parsed.Example;
-  const VerbForm = Parsed.VerbForm;
-  const IsIrregular = Parsed.IsIrregular;
-  const OtherForms = Parsed.OtherForms;
+export const parseTranslationResponse = (outputText: string): translationResponse => {
+  const jsonText = extractFirstJsonObject(outputText);
+  const parsed = JSON.parse(jsonText) as Record<string, unknown>;
+  const translation = parsed.Translation;
+  const partOfSpeech = parsed.PartOfSpeech;
+  const example = parsed.Example;
+  const verbForm = parsed.VerbForm;
+  const isIrregular = parsed.IsIrregular;
+  const otherForms = parsed.OtherForms;
 
   if (
-    typeof Translation !== "string" ||
-    typeof PartOfSpeech !== "string" ||
-    typeof Example !== "string" ||
-    typeof VerbForm !== "string" ||
-    typeof IsIrregular !== "boolean" ||
-    typeof OtherForms !== "string"
+    typeof translation !== "string" ||
+    typeof partOfSpeech !== "string" ||
+    typeof example !== "string" ||
+    typeof verbForm !== "string" ||
+    typeof isIrregular !== "boolean" ||
+    typeof otherForms !== "string"
   ) {
     throw new Error("Invalid translation response shape.");
   }
 
-  return { Translation, PartOfSpeech, Example, VerbForm, IsIrregular, OtherForms };
+  return {
+    Translation: translation,
+    PartOfSpeech: partOfSpeech,
+    Example: example,
+    VerbForm: verbForm,
+    IsIrregular: isIrregular,
+    OtherForms: otherForms
+  };
 };
-
-export default ParseTranslationResponse;

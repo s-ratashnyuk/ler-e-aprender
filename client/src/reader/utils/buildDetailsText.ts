@@ -1,6 +1,6 @@
-import type translationResponse from "../../types/translationResponse";
+import type { translationResponse } from "../../types/translationResponse";
 
-const buildDetailsText = (response: translationResponse): string => {
+export const buildDetailsText = (response: translationResponse): string => {
   if (!response.verbForm) {
     return "";
   }
@@ -15,5 +15,3 @@ const buildDetailsText = (response: translationResponse): string => {
 
   return parts.join(" | ");
 };
-
-export default buildDetailsText;

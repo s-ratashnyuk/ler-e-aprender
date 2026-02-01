@@ -1,18 +1,18 @@
 import OpenAI from "openai";
-import type TranslationRequest from "../contracts/TranslationRequest";
-import type TranslationResponse from "../contracts/TranslationResponse";
-import BuildSystemInstructions from "./BuildSystemInstructions";
-import BuildUserPrompt from "./BuildUserPrompt";
-import ParseTranslationResponse from "./ParseTranslationResponse";
+import type { translationRequest } from "../contracts/TranslationRequest";
+import type { translationResponse } from "../contracts/TranslationResponse";
+import { buildSystemInstructions } from "./BuildSystemInstructions";
+import { buildUserPrompt } from "./BuildUserPrompt";
+import { parseTranslationResponse } from "./ParseTranslationResponse";
 
-const CreateTranslation = async (
-  OpenAiClient: OpenAI,
-  Request: TranslationRequest
-): Promise<TranslationResponse> => {
-  const Response = await OpenAiClient.responses.create({
+export const createTranslation = async (
+  openAiClient: OpenAI,
+  request: translationRequest
+): Promise<translationResponse> => {
+  const response = await openAiClient.responses.create({
     model: "gpt-4.1-mini",
-    instructions: BuildSystemInstructions(),
-    input: BuildUserPrompt(Request),
+    instructions: buildSystemInstructions(),
+    input: buildUserPrompt(request),
     temperature: 0.2,
     max_output_tokens: 220,
     text: {
@@ -22,12 +22,10 @@ const CreateTranslation = async (
     }
   });
 
-  const OutputText = Response.output_text ?? "";
-  if (!OutputText) {
+  const outputText = response.output_text ?? "";
+  if (!outputText) {
     throw new Error("Empty response from OpenAI.");
   }
 
-  return ParseTranslationResponse(OutputText);
+  return parseTranslationResponse(outputText);
 };
-
-export default CreateTranslation;

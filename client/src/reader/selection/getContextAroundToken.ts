@@ -1,11 +1,11 @@
-import type textToken from "../../types/textToken";
+import type { textToken } from "../../types/textToken";
 
 type contextWindow = {
   contextLeft: string;
   contextRight: string;
 };
 
-const getContextAroundToken = (
+export const getContextAroundToken = (
   tokens: textToken[],
   token: textToken,
   windowSize: number
@@ -36,5 +36,3 @@ const getContextAroundToken = (
     contextRight: rightWords.join(" ")
   };
 };
-
-export default getContextAroundToken;

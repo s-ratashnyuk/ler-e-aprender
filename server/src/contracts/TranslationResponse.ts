@@ -1,4 +1,4 @@
-type TranslationResponse = {
+export type translationResponse = {
   Translation: string;
   PartOfSpeech: string;
   Example: string;
@@ -6,5 +6,3 @@ type TranslationResponse = {
   IsIrregular: boolean;
   OtherForms: string;
 };
-
-export type { TranslationResponse as default };
