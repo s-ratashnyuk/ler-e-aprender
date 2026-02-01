@@ -5,7 +5,6 @@ import type { rootState } from "../../types/rootState";
 import type { textToken } from "../../types/textToken";
 import type { translationEntry } from "../../types/translationEntry";
 import type { translationRequest } from "../../types/translationRequest";
-import { buildDetailsText } from "../utils/buildDetailsText";
 import { splitTextToTokens } from "../selection/splitTextToTokens";
 import { findNearestWordToken } from "../selection/findNearestWordToken";
 import { getContextAroundToken } from "../selection/getContextAroundToken";
@@ -160,10 +159,11 @@ export const ReaderScreen = (): JSX.Element => {
           contextRight: context.contextRight,
           translation: translation.translation,
           partOfSpeech: translation.partOfSpeech,
-          example: translation.example,
-          verbForm: translation.verbForm,
+          tense: translation.tense,
+          infinitive: translation.infinitive,
           isIrregular: translation.isIrregular,
-          otherForms: translation.otherForms,
+          usageExamples: translation.usageExamples,
+          verbForms: translation.verbForms,
           timestamp: Date.now()
         };
 
@@ -185,14 +185,49 @@ export const ReaderScreen = (): JSX.Element => {
   );
 
   const popupWordText = popupState.response
-    ? popupState.response.partOfSpeech
-      ? `${popupState.word} (${popupState.response.partOfSpeech})`
-      : popupState.word
+    ? (() => {
+      const partOfSpeech = popupState.response.partOfSpeech.trim();
+      if (!partOfSpeech) {
+        return popupState.word;
+      }
+
+      const isVerb = partOfSpeech.toLocaleLowerCase().includes("verbo");
+      if (!isVerb) {
+        return `${popupState.word} (${partOfSpeech})`;
+      }
+
+      const regularity = popupState.response.isIrregular ? "irregular" : "regular";
+      return `${popupState.word} (${partOfSpeech}, ${regularity})`;
+    })()
+    : popupState.word || popupState.statusText;
+
+  const popupTranslationText = popupState.response
+    ? popupState.response.translation
     : popupState.statusText;
 
-  const popupTranslationText = popupState.response ? popupState.response.translation : "";
-  const popupDetailsText = popupState.response ? buildDetailsText(popupState.response) : "";
-  const popupExampleText = popupState.response ? popupState.response.example : "";
+  const popupTenseLine = popupState.response
+    ? (() => {
+      const tenseLabel = popupState.response.tense.trim();
+      const infinitive = popupState.response.infinitive.trim();
+
+      if (!tenseLabel && !infinitive) {
+        return "";
+      }
+
+      if (tenseLabel && infinitive) {
+        return `${tenseLabel}, inf.: ${infinitive}`;
+      }
+
+      if (infinitive) {
+        return `inf.: ${infinitive}`;
+      }
+
+      return tenseLabel;
+    })()
+    : "";
+
+  const usageExamples = popupState.response?.usageExamples ?? [];
+  const verbForms = popupState.response?.verbForms ?? [];
 
   const renderToken = useCallback(
     (token: textToken): JSX.Element => {
@@ -232,8 +267,35 @@ export const ReaderScreen = (): JSX.Element => {
           <div className={`popup${popupState.isOpen ? " is-visible" : ""}`} role="dialog" aria-live="polite">
             <div className="popup-word">{popupWordText}</div>
             <div className="popup-translation">{popupTranslationText}</div>
-            <div className="popup-details">{popupDetailsText}</div>
-            <div className="popup-example">{popupExampleText}</div>
+            {popupTenseLine ? <div className="popup-subline">{popupTenseLine}</div> : null}
+            {usageExamples.length > 0 ? (
+              <div className="popup-usage">
+                {usageExamples.map((example, index) => (
+                  <div className="usage-item" key={`${example.portuguese}-${index}`}>
+                    <div className="usage-label">Uso {index + 1}</div>
+                    <div className="usage-pt">{example.portuguese}</div>
+                    <div className="usage-translation">{example.translation}</div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+            {verbForms.length > 0 ? (
+              <div className="popup-forms">
+                <div className="forms-title">FORMAS VERBAIS</div>
+                <div className="forms-table" role="table">
+                  <div className="forms-row forms-head" role="row">
+                    <div className="forms-cell tempo" role="columnheader">Tempo</div>
+                    <div className="forms-cell" role="columnheader">Forma</div>
+                  </div>
+                  {verbForms.map((row, index) => (
+                    <div className="forms-row" role="row" key={`${row.tense}-${index}`}>
+                      <div className="forms-cell tempo" role="cell">{row.tense}</div>
+                      <div className="forms-cell" role="cell">{row.forms}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

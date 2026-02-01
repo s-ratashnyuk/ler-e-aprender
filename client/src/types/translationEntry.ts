@@ -5,9 +5,20 @@ export type translationEntry = {
   contextRight: string;
   translation: string;
   partOfSpeech: string;
-  example: string;
-  verbForm: string;
+  tense: string;
+  infinitive: string;
   isIrregular: boolean;
-  otherForms: string;
+  usageExamples: usageExample[];
+  verbForms: verbFormRow[];
   timestamp: number;
+};
+
+export type usageExample = {
+  portuguese: string;
+  translation: string;
+};
+
+export type verbFormRow = {
+  tense: string;
+  forms: string;
 };

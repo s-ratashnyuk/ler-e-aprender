@@ -1,8 +1,19 @@
 export type translationApiResponse = {
   Translation: string;
   PartOfSpeech: string;
-  Example: string;
-  VerbForm: string;
+  Tense: string;
+  Infinitive: string;
   IsIrregular: boolean;
-  OtherForms: string;
+  UsageExamples: usageExampleApi[];
+  VerbForms: verbFormRowApi[];
+};
+
+export type usageExampleApi = {
+  Portuguese: string;
+  Translation: string;
+};
+
+export type verbFormRowApi = {
+  Tense: string;
+  Forms: string;
 };

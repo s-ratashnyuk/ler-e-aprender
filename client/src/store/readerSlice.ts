@@ -26,10 +26,11 @@ const mapEntryToResponse = (entry: translationEntry): translationResponse => {
   return {
     translation: entry.translation,
     partOfSpeech: entry.partOfSpeech,
-    example: entry.example,
-    verbForm: entry.verbForm,
+    tense: entry.tense,
+    infinitive: entry.infinitive,
     isIrregular: entry.isIrregular,
-    otherForms: entry.otherForms
+    usageExamples: entry.usageExamples,
+    verbForms: entry.verbForms
   };
 };
 

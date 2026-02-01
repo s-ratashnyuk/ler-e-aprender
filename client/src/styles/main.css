@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Literata:wght@400;600&family=Work+Sans:wght@400;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Literata:wght@400;600&family=Work+Sans:wght@400;500;600&display=swap");
 
 :root {
   --bg-top: #f6f3ee;
@@ -70,6 +70,7 @@ body {
   letter-spacing: 0.2px;
   height: 100%;
   width: 100%;
+  overflow-x: hidden;
   overflow-y: auto;
   padding-right: 6px;
   -webkit-overflow-scrolling: touch;
@@ -97,12 +98,10 @@ body {
   position: fixed;
   left: 50%;
   top: 50%;
-  width: 92vw;
-  height: 50vh;
+  width: min(92vw, 640px);
+  height: auto;
   min-width: 280px;
-  min-height: 200px;
-  max-width: 640px;
-  max-height: 520px;
+  max-height: min(50vh, 520px);
   background: #ffffff;
   border-radius: 18px;
   box-shadow: var(--shadow);
@@ -114,8 +113,16 @@ body {
   transition: opacity 0.2s ease, transform 0.2s ease;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
+  overflow-x: hidden;
   overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.popup::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 .popup.is-visible {
@@ -126,32 +133,106 @@ body {
 
 .popup-word {
   font-family: "Work Sans", sans-serif;
-  font-size: 18px;
+  font-size: 16px;
+  font-weight: 500;
   color: var(--muted);
 }
 
 .popup-translation {
-  font-size: 23px;
+  font-family: "Literata", serif;
+  font-size: 24px;
   font-weight: 600;
   color: var(--popup-text);
   line-height: 1.2;
-  max-height: 72px;
 }
 
-.popup-details {
+.popup-subline {
   font-family: "Work Sans", sans-serif;
-  font-size: 17px;
+  font-size: 12px;
   color: var(--muted);
   line-height: 1.4;
 }
 
-.popup-example {
+.popup-usage {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.usage-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.usage-label {
   font-family: "Work Sans", sans-serif;
-  font-size: 17px;
+  font-size: 12px;
+  color: var(--accent);
+}
+
+.usage-pt {
+  font-family: "Work Sans", sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.usage-translation {
+  font-family: "Work Sans", sans-serif;
+  font-size: 12px;
   color: var(--muted-2);
   line-height: 1.3;
 }
 
+.popup-forms {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.forms-title {
+  font-family: "Work Sans", sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.6px;
+  color: var(--muted);
+}
+
+.forms-table {
+  border: 1px solid var(--shell-bar);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.forms-row {
+  display: grid;
+  grid-template-columns: minmax(84px, 120px) minmax(0, 1fr);
+  border-top: 1px solid var(--shell-bar);
+}
+
+.forms-row:first-child {
+  border-top: none;
+}
+
+.forms-cell {
+  padding: 8px 10px;
+  font-family: "Work Sans", sans-serif;
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.forms-cell.tempo {
+  font-weight: 500;
+  color: var(--muted-2);
+}
+
+.forms-head .forms-cell {
+  font-weight: 600;
+  color: var(--muted-2);
+}
 
 @media (max-width: 480px) {
   .reader-card {
@@ -160,5 +241,36 @@ body {
 
   .reader-text {
     font-size: 22px;
+  }
+
+  .popup {
+    padding: 16px;
+  }
+
+  .popup-translation {
+    font-size: 20px;
+  }
+
+  .forms-row {
+    grid-template-columns: minmax(72px, 96px) minmax(0, 1fr);
+  }
+
+  .forms-cell {
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 420px) {
+  .forms-head {
+    display: none;
+  }
+
+  .forms-row {
+    grid-template-columns: 1fr;
+  }
+
+  .forms-cell.tempo {
+    padding-bottom: 2px;
   }
 }

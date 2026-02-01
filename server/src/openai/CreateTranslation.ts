@@ -14,7 +14,7 @@ export const createTranslation = async (
     instructions: buildSystemInstructions(),
     input: buildUserPrompt(request),
     temperature: 0.2,
-    max_output_tokens: 220,
+    max_output_tokens: 600,
     text: {
       format: {
         type: "json_object"
