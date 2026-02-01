@@ -12,8 +12,8 @@ import { getContextAroundToken } from "../selection/getContextAroundToken";
 import { useAppDispatch } from "../../store/hooks/useAppDispatch";
 import { useAppSelector } from "../../store/hooks/useAppSelector";
 import { readerSlice } from "../../store/readerSlice";
-import { storyText } from "../../content/storyText";
-import { translateWord } from "../../api/translateWord";
+import { storyText } from "../../content/StoryText";
+import { translateWord } from "../../api/TranslateWord";
 
 export const ReaderScreen = (): JSX.Element => {
   const dispatch = useAppDispatch();
