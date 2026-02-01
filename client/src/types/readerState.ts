@@ -4,6 +4,6 @@ import type { translationEntry } from "./translationEntry";
 export type readerState = {
   activeBookId: string;
   books: bookEntry[];
-  translationsByBook: Record<string, translationEntry[]>;
+  translationsByBook: Record<string, Record<string, translationEntry[]>>;
   progressByBook: Record<string, number>;
 };

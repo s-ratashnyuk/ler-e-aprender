@@ -1,3 +1,4 @@
+import { JSX } from "react";
 import { ReaderScreen } from "./reader/components/ReaderScreen";
 
 export const App = (): JSX.Element => {

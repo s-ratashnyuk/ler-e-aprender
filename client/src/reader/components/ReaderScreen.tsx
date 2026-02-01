@@ -11,7 +11,7 @@ import { findNearestWordToken } from "../selection/findNearestWordToken";
 import { getContextAroundToken } from "../selection/getContextAroundToken";
 import { useAppDispatch } from "../../store/hooks/useAppDispatch";
 import { useAppSelector } from "../../store/hooks/useAppSelector";
-import { readerSlice } from "../../store/readerSlice";
+import { readerSlice, selectFirstTranslationsByWord } from "../../store/readerSlice";
 import { storyText } from "../../content/StoryText";
 import { translateWord } from "../../api/TranslateWord";
 
@@ -28,6 +28,9 @@ export const ReaderScreen = (): JSX.Element => {
   const activeBookId = useAppSelector(selectActiveBookId);
   const progressByBook = useAppSelector(selectProgressByBook);
   const savedProgress = progressByBook[activeBookId] ?? 0;
+  const savedTranslationsByWord = useAppSelector((state) =>
+    selectFirstTranslationsByWord(state, activeBookId)
+  );
 
   const tokens = useMemo((): textToken[] => splitTextToTokens(storyText), []);
   const textContainerRef = useRef<HTMLDivElement | null>(null);
@@ -104,15 +107,29 @@ export const ReaderScreen = (): JSX.Element => {
       }
 
       setSelectedTokenIndex(selectedToken.index);
+
+      const requestId = requestIdRef.current + 1;
+      requestIdRef.current = requestId;
+
+      const normalizedWord = selectedToken.text.trim().toLocaleLowerCase();
+      const savedTranslation = savedTranslationsByWord[normalizedWord] ?? null;
+
+      if (savedTranslation) {
+        setPopupState({
+          isOpen: true,
+          statusText: "",
+          word: selectedToken.text,
+          response: savedTranslation
+        });
+        return;
+      }
+
       setPopupState({
         isOpen: true,
         statusText: "A traduzir...",
         word: selectedToken.text,
         response: null
       });
-
-      const requestId = requestIdRef.current + 1;
-      requestIdRef.current = requestId;
 
       const context = getContextAroundToken(tokens, selectedToken, 4);
       const payload: translationRequest = {
@@ -164,7 +181,7 @@ export const ReaderScreen = (): JSX.Element => {
         });
       }
     },
-    [activeBookId, closePopup, dispatch, popupState.isOpen, tokens]
+    [activeBookId, closePopup, dispatch, popupState.isOpen, savedTranslationsByWord, tokens]
   );
 
   const popupWordText = popupState.response
