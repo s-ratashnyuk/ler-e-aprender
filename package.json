@@ -1,0 +1,11 @@
+{
+  "name": "ler-e-aprender",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "dev:client": "pnpm --dir client dev",
+    "dev:server": "pnpm --dir server dev",
+    "build:client": "pnpm --dir client build",
+    "build:server": "pnpm --dir server build"
+  }
+}

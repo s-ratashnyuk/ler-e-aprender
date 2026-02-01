@@ -1,0 +1,164 @@
+@import url("https://fonts.googleapis.com/css2?family=Literata:wght@400;600&family=Work+Sans:wght@400;600&display=swap");
+
+:root {
+  --bg-top: #f6f3ee;
+  --bg-bottom: #efe9e1;
+  --shell: #e9e3da;
+  --shell-top: #f7f2ec;
+  --shell-bar: #eae3da;
+  --shell-pill: #cfc7bb;
+  --card: #fffdfb;
+  --text: #3e3a34;
+  --accent: #0f6b5c;
+  --highlight: #cfeae4;
+  --popup-text: #2d2924;
+  --muted: #7a736b;
+  --muted-2: #5b554e;
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  --shadow-soft: 0 3px 12px rgba(0, 0, 0, 0.1);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: "Literata", serif;
+  background: linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+  color: var(--text);
+}
+
+#app {
+  width: 100vw;
+  height: 100vh;
+}
+
+.page {
+  width: 100%;
+  height: 100%;
+  background: transparent;
+}
+
+.browser-shell {
+  background: var(--shell);
+  border-radius: 18px;
+  padding: 8px;
+  height: 100%;
+}
+
+
+.reader-card {
+  background: var(--card);
+  border-radius: 22px;
+  padding: 28px 20px;
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+  height: 100%;
+}
+
+.reader-text {
+  font-size: 22px;
+  line-height: 1.55;
+  letter-spacing: 0.2px;
+  height: 100%;
+  width: 100%;
+  overflow-y: auto;
+  padding-right: 6px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.token {
+  white-space: pre-wrap;
+}
+
+.word-token {
+  cursor: pointer;
+  transition: background 0.2s ease;
+  border-radius: 6px;
+  padding: 2px 4px;
+  font-weight: 400;
+}
+
+.word-token.is-selected {
+  background: var(--highlight);
+  color: var(--accent);
+  text-shadow: 0.4px 0 0 currentColor, -0.4px 0 0 currentColor;
+}
+
+.popup {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  width: 92vw;
+  height: 50vh;
+  min-width: 280px;
+  min-height: 200px;
+  max-width: 640px;
+  max-height: 520px;
+  background: #ffffff;
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  padding: 18px 20px;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 10;
+  transform: translate(-50%, -50%) scale(0.98);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+}
+
+.popup.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.popup-word {
+  font-family: "Work Sans", sans-serif;
+  font-size: 18px;
+  color: var(--muted);
+}
+
+.popup-translation {
+  font-size: 23px;
+  font-weight: 600;
+  color: var(--popup-text);
+  line-height: 1.2;
+  max-height: 72px;
+}
+
+.popup-details {
+  font-family: "Work Sans", sans-serif;
+  font-size: 17px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.popup-example {
+  font-family: "Work Sans", sans-serif;
+  font-size: 17px;
+  color: var(--muted-2);
+  line-height: 1.3;
+}
+
+
+@media (max-width: 480px) {
+  .reader-card {
+    padding: 24px 16px;
+  }
+
+  .reader-text {
+    font-size: 22px;
+  }
+}
