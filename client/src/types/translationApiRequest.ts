@@ -1,4 +1,4 @@
-type TranslationRequest = {
+type translationApiRequest = {
   Word: string;
   ContextLeft: string;
   ContextRight: string;
@@ -6,4 +6,4 @@ type TranslationRequest = {
   TargetLanguage: string;
 };
 
-export type { TranslationRequest as default };
+export type { translationApiRequest as default };

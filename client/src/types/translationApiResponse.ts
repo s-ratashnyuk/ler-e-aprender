@@ -1,4 +1,4 @@
-type TranslationResponse = {
+type translationApiResponse = {
   Translation: string;
   PartOfSpeech: string;
   Example: string;
@@ -7,4 +7,4 @@ type TranslationResponse = {
   OtherForms: string;
 };
 
-export type { TranslationResponse as default };
+export type { translationApiResponse as default };

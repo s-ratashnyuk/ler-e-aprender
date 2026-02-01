@@ -7,7 +7,16 @@
     "build": "vite build",
     "preview": "vite preview"
   },
+  "dependencies": {
+    "@reduxjs/toolkit": "^2.2.7",
+    "react": "latest",
+    "react-dom": "latest",
+    "react-redux": "^9.1.2"
+  },
   "devDependencies": {
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "@vitejs/plugin-react": "^4.3.1",
     "typescript": "^5.6.3",
     "vite": "^5.4.0"
   }

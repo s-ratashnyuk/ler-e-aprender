@@ -1,6 +1,8 @@
 import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
 
-const Config = defineConfig({
+const config = defineConfig({
+  plugins: [react()],
   server: {
     port: 5173,
     proxy: {
@@ -9,4 +11,4 @@ const Config = defineConfig({
   }
 });
 
-export default Config;
+export default config;
