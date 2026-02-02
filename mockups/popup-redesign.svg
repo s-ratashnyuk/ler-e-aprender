@@ -16,6 +16,11 @@
   </g>
 
   <text x="64" y="84" font-family="Work Sans, Inter, Arial, sans-serif" font-size="20" font-weight="500" fill="#7A736B">cativou (verbo, regular)</text>
+  <g transform="translate(640 64)">
+    <circle cx="12" cy="12" r="12" fill="#FFFFFF" stroke="#EAE3DA"/>
+    <path d="M15.5 12a4.5 4.5 0 1 1-1.5-3.3" fill="none" stroke="#7A736B" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M15.5 7.5v4h-4" fill="none" stroke="#7A736B" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
 
   <g transform="translate(0 20)">
     <text x="64" y="94" font-family="Literata, Georgia, serif" font-size="24" font-weight="600" fill="#2D2924">captivated</text>

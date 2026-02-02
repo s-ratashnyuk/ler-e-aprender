@@ -54,6 +54,26 @@ export const readerSlice = createSlice({
       translationsForBook[normalizedWord] = existing;
       state.translationsByBook[bookId] = translationsForBook;
     },
+    upsertTranslation: (state, action: PayloadAction<translationPayload>): void => {
+      const { bookId, entry } = action.payload;
+      const normalizedWord = normalizeWord(entry.word);
+      if (!normalizedWord) {
+        return;
+      }
+
+      const translationsForBook = state.translationsByBook[bookId] ?? {};
+      const existing = translationsForBook[normalizedWord] ?? [];
+      const existingIndex = existing.findIndex((stored) => stored.id === entry.id);
+
+      if (existingIndex >= 0) {
+        existing[existingIndex] = entry;
+      } else {
+        existing.push(entry);
+      }
+
+      translationsForBook[normalizedWord] = existing;
+      state.translationsByBook[bookId] = translationsForBook;
+    },
     setReadingProgress: (state, action: PayloadAction<readingProgressPayload>): void => {
       const { bookId, progress } = action.payload;
       state.progressByBook[bookId] = progress;

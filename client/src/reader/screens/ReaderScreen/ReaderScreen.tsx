@@ -8,6 +8,7 @@ import { useAppDispatch } from "../../../store/hooks/useAppDispatch";
 import { useAppSelector } from "../../../store/hooks/useAppSelector";
 import { storyText } from "../../../content/storyText";
 import { handleContainerClickCapture as handleContainerClickCaptureImpl } from "./callbacks/handleContainerClickCapture";
+import { handleRefreshClick as handleRefreshClickImpl } from "./callbacks/handleRefreshClick";
 import { handleScroll as handleScrollImpl } from "./callbacks/handleScroll"
 import { handleTokenClick as handleTokenClickImpl } from "./callbacks/handleTokenClick";
 import { renderToken as renderTokenImpl } from "./renderToken";
@@ -140,6 +141,18 @@ export const ReaderScreen = (): JSX.Element => {
     [activeBookId, closePopup, dispatch, popupState.isOpen, savedTranslationsByWord, tokens]
   );
 
+  const handleRefreshClick = useCallback(async (): Promise<void> => {
+    await handleRefreshClickImpl({
+      activeBookId,
+      dispatch,
+      requestIdRef,
+      selectedTokenIndex,
+      setPopupState,
+      tokens,
+      rawText: storyText
+    });
+  }, [activeBookId, dispatch, requestIdRef, selectedTokenIndex, setPopupState, tokens]);
+
   const popupWordText = popupState.response
     ? (() => {
       const partOfSpeech = popupState.response.partOfSpeech.trim();
@@ -181,6 +194,9 @@ export const ReaderScreen = (): JSX.Element => {
       return tenseLabel;
     })()
     : "";
+
+  const isTranslationPending = popupState.statusText === "A traduzir...";
+  const refreshDisabled = selectedTokenIndex === null || !popupState.word.trim() || isTranslationPending;
 
   const usageExamples = popupState.response?.usageExamples ?? [];
   const verbForms = popupState.response?.verbForms ?? [];
@@ -230,7 +246,36 @@ export const ReaderScreen = (): JSX.Element => {
             {tokens.map(renderToken)}
           </div>
           <div className={`popup${popupState.isOpen ? " is-visible" : ""}`} role="dialog" aria-live="polite">
-            <div className="popup-word">{popupWordText}</div>
+            <div className="popup-header">
+              <div className="popup-word">{popupWordText}</div>
+              <button
+                className={`popup-refresh${isTranslationPending ? " is-loading" : ""}`}
+                type="button"
+                onClick={handleRefreshClick}
+                disabled={refreshDisabled}
+                aria-label="Atualizar tradução"
+                title="Atualizar tradução"
+              >
+                <svg viewBox="0 0 20 20" aria-hidden="true">
+                  <path
+                    d="M16.5 10a6.5 6.5 0 1 1-2.1-4.8"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M16.5 4.5v4h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            </div>
             <div className="popup-translation">{renderBoldText(popupTranslationText)}</div>
             {popupTenseLine ? <div className="popup-subline">{popupTenseLine}</div> : null}
             {usageExamples.length > 0 ? (
