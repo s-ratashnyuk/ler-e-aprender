@@ -1,31 +1,18 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import type { JSX } from "react";
-import type { popupState } from "../../types/popupState";
-import type { rootState } from "../../types/rootState";
-import type { textToken } from "../../types/textToken";
-import type { translationEntry } from "../../types/translationEntry";
-import type { translationRequest } from "../../types/translationRequest";
-import { splitTextToTokens } from "../selection/splitTextToTokens";
-import { findNearestWordToken } from "../selection/findNearestWordToken";
-import { getContextAroundToken } from "../selection/getContextAroundToken";
-import { useAppDispatch } from "../../store/hooks/useAppDispatch";
-import { useAppSelector } from "../../store/hooks/useAppSelector";
-import { readerSlice, selectFirstTranslationsByWord } from "../../store/readerSlice";
-import { storyText } from "../../content/StoryText";
-import { translateWord } from "../../api/TranslateWord";
-
-const buildTranslationEntryId = (word: string, contextLeft: string, contextRight: string): string => {
-  const normalized = `${word.trim().toLocaleLowerCase()}|${contextLeft.trim().toLocaleLowerCase()}|${contextRight
-    .trim()
-    .toLocaleLowerCase()}`;
-  let hash = 2166136261;
-  for (let index = 0; index < normalized.length; index += 1) {
-    hash ^= normalized.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-
-  return `tr-${(hash >>> 0).toString(36)}`;
-};
+import type { popupState } from "../../../types/popupState";
+import type { rootState } from "../../../types/rootState";
+import type { textToken } from "../../../types/textToken";
+import { splitTextToTokens } from "../../selection/splitTextToTokens";
+import { useAppDispatch } from "../../../store/hooks/useAppDispatch";
+import { useAppSelector } from "../../../store/hooks/useAppSelector";
+import { selectFirstTranslationsByWord } from "../../../store/readerSlice";
+import { storyText } from "../../../content/storyText";
+import { handleContainerClickCapture as handleContainerClickCaptureImpl } from "./callbacks/handleContainerClickCapture";
+import { handleScroll as handleScrollImpl } from "./callbacks/handleScroll"
+import { handleTokenClick as handleTokenClickImpl } from "./callbacks/handleTokenClick";
+import { renderToken as renderTokenImpl } from "./renderToken";
+import { syncScrollPosition as syncScrollPositionImpl } from "./utils/syncScrollPosition";
 
 export const ReaderScreen = (): JSX.Element => {
   const dispatch = useAppDispatch();
@@ -57,14 +44,11 @@ export const ReaderScreen = (): JSX.Element => {
   });
 
   const syncScrollPosition = useCallback((): void => {
-    const container = textContainerRef.current;
-    if (!container) {
-      return;
-    }
-
-    const maxScroll = container.scrollHeight - container.clientHeight;
-    container.scrollTop = maxScroll * savedProgress;
-  }, [savedProgress, tokens]);
+    syncScrollPositionImpl({
+      textContainerRef,
+      savedProgress
+    });
+  }, [savedProgress, tokens.length]);
 
   useLayoutEffect(syncScrollPosition, [syncScrollPosition]);
 
@@ -81,118 +65,39 @@ export const ReaderScreen = (): JSX.Element => {
 
   const handleContainerClickCapture = useCallback(
     (event: MouseEvent<HTMLDivElement>): void => {
-      if (!popupState.isOpen) {
-        return;
-      }
-
-      event.stopPropagation();
-      closePopup();
+      handleContainerClickCaptureImpl(
+        {
+          closePopup,
+          isPopupOpen: popupState.isOpen
+        },
+        event
+      );
     },
     [closePopup, popupState.isOpen]
   );
 
   const handleScroll = useCallback((): void => {
-    const container = textContainerRef.current;
-    if (!container) {
-      return;
-    }
-
-    const maxScroll = container.scrollHeight - container.clientHeight;
-    const progress = maxScroll > 0 ? container.scrollTop / maxScroll : 0;
-
-    dispatch(readerSlice.actions.setReadingProgress({
-      bookId: activeBookId,
-      progress
-    }));
+    handleScrollImpl({
+      activeBookId,
+      dispatch,
+      textContainerRef
+    });
   }, [activeBookId, dispatch]);
 
   const handleTokenClick = useCallback(
     async (tokenIndex: number): Promise<void> => {
-      if (popupState.isOpen) {
-        return;
-      }
-
-      const selectedToken = findNearestWordToken(tokens, tokenIndex);
-      if (!selectedToken) {
-        closePopup();
-        return;
-      }
-
-      setSelectedTokenIndex(selectedToken.index);
-
-      const requestId = requestIdRef.current + 1;
-      requestIdRef.current = requestId;
-
-      const normalizedWord = selectedToken.text.trim().toLocaleLowerCase();
-      const savedTranslation = savedTranslationsByWord[normalizedWord] ?? null;
-
-      if (savedTranslation) {
-        setPopupState({
-          isOpen: true,
-          statusText: "",
-          word: selectedToken.text,
-          response: savedTranslation
-        });
-        return;
-      }
-
-      setPopupState({
-        isOpen: true,
-        statusText: "A traduzir...",
-        word: selectedToken.text,
-        response: null
+      await handleTokenClickImpl({
+        tokenIndex,
+        activeBookId,
+        closePopup,
+        dispatch,
+        popupStateIsOpen: popupState.isOpen,
+        requestIdRef,
+        savedTranslationsByWord,
+        setPopupState,
+        setSelectedTokenIndex,
+        tokens
       });
-
-      const context = getContextAroundToken(tokens, selectedToken, 4);
-      const payload: translationRequest = {
-        word: selectedToken.text,
-        contextLeft: context.contextLeft,
-        contextRight: context.contextRight,
-        sourceLanguage: "Portugues de Portugal",
-        targetLanguage: "Russo"
-      };
-
-      try {
-        const translation = await translateWord(payload);
-        if (requestId !== requestIdRef.current) {
-          return;
-        }
-
-        setPopupState({
-          isOpen: true,
-          statusText: "",
-          word: selectedToken.text,
-          response: translation
-        });
-
-        const entry: translationEntry = {
-          id: buildTranslationEntryId(selectedToken.text, context.contextLeft, context.contextRight),
-          word: selectedToken.text,
-          contextLeft: context.contextLeft,
-          contextRight: context.contextRight,
-          translation: translation.translation,
-          partOfSpeech: translation.partOfSpeech,
-          tense: translation.tense,
-          infinitive: translation.infinitive,
-          isIrregular: translation.isIrregular,
-          usageExamples: translation.usageExamples,
-          verbForms: translation.verbForms,
-          timestamp: Date.now()
-        };
-
-        dispatch(readerSlice.actions.addTranslation({
-          bookId: activeBookId,
-          entry
-        }));
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "Erro ao traduzir.";
-        setPopupState({
-          isOpen: true,
-          statusText: message,
-          word: selectedToken.text,
-          response: null
-        });
-      }
     },
     [activeBookId, closePopup, dispatch, popupState.isOpen, savedTranslationsByWord, tokens]
   );
@@ -263,21 +168,11 @@ export const ReaderScreen = (): JSX.Element => {
 
   const renderToken = useCallback(
     (token: textToken): JSX.Element => {
-      const isSelected = selectedTokenIndex === token.index;
-      const isWord = token.type === "word";
-      const className = ["token", isWord ? "word-token" : "", isSelected ? "is-selected" : ""]
-        .filter(Boolean)
-        .join(" ");
-
-      return (
-        <span
-          key={token.index}
-          className={className}
-          onClick={() => handleTokenClick(token.index)}
-        >
-          {token.text}
-        </span>
-      );
+      return renderTokenImpl({
+        token,
+        onTokenClick: handleTokenClick,
+        selectedTokenIndex
+      });
     },
     [handleTokenClick, selectedTokenIndex]
   );
