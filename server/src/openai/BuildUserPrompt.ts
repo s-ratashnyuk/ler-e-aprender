@@ -11,8 +11,8 @@ export const buildUserPrompt = (request: translationRequest): string => {
     "Include verb tense + infinitive details if applicable.",
     "Provide 5 usage examples by default; include up to 10 total if multiple meanings must be covered.",
     "Each example must use the exact word form provided and include a translation.",
-    "If the word is a verb, include verb forms for Pres. do ind., Pretérito perf., Pretérito imperf., Fut., Part. pass.",
-    "For verb forms, use only eu, tu, ele(a), nós, ele(a)s (no vós).",
+    "If the word is a verb, include verb forms for Pres. do ind., Pretérito perf., Pretérito imperf., Fut., Part. pass., Imperativo (last).",
+    "For verb forms, use only eu, tu, ele(a), nós, ele(a)s (no vós). For Imperativo, omit eu and use tu, ele(a), nós, ele(a)s.",
     "Return the result as json."
   ].join("\n");
 };

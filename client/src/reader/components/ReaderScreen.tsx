@@ -14,6 +14,19 @@ import { readerSlice, selectFirstTranslationsByWord } from "../../store/readerSl
 import { storyText } from "../../content/StoryText";
 import { translateWord } from "../../api/TranslateWord";
 
+const buildTranslationEntryId = (word: string, contextLeft: string, contextRight: string): string => {
+  const normalized = `${word.trim().toLocaleLowerCase()}|${contextLeft.trim().toLocaleLowerCase()}|${contextRight
+    .trim()
+    .toLocaleLowerCase()}`;
+  let hash = 2166136261;
+  for (let index = 0; index < normalized.length; index += 1) {
+    hash ^= normalized.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return `tr-${(hash >>> 0).toString(36)}`;
+};
+
 export const ReaderScreen = (): JSX.Element => {
   const dispatch = useAppDispatch();
   const selectActiveBookId = useCallback(
@@ -153,7 +166,7 @@ export const ReaderScreen = (): JSX.Element => {
         });
 
         const entry: translationEntry = {
-          id: crypto.randomUUID(),
+          id: buildTranslationEntryId(selectedToken.text, context.contextLeft, context.contextRight),
           word: selectedToken.text,
           contextLeft: context.contextLeft,
           contextRight: context.contextRight,
@@ -228,6 +241,25 @@ export const ReaderScreen = (): JSX.Element => {
 
   const usageExamples = popupState.response?.usageExamples ?? [];
   const verbForms = popupState.response?.verbForms ?? [];
+  const orderedVerbForms = useMemo(() => {
+    if (verbForms.length === 0) {
+      return verbForms;
+    }
+
+    const imperativoRows: typeof verbForms = [];
+    const otherRows: typeof verbForms = [];
+
+    verbForms.forEach((row) => {
+      const label = row.tense.trim().toLocaleLowerCase();
+      if (label.startsWith("imperativo")) {
+        imperativoRows.push(row);
+      } else {
+        otherRows.push(row);
+      }
+    });
+
+    return [...otherRows, ...imperativoRows];
+  }, [verbForms]);
 
   const renderToken = useCallback(
     (token: textToken): JSX.Element => {
@@ -279,7 +311,7 @@ export const ReaderScreen = (): JSX.Element => {
                 ))}
               </div>
             ) : null}
-            {verbForms.length > 0 ? (
+            {orderedVerbForms.length > 0 ? (
               <div className="popup-forms">
                 <div className="forms-title">FORMAS VERBAIS</div>
                 <div className="forms-table" role="table">
@@ -287,7 +319,7 @@ export const ReaderScreen = (): JSX.Element => {
                     <div className="forms-cell tempo" role="columnheader">Tempo</div>
                     <div className="forms-cell" role="columnheader">Forma</div>
                   </div>
-                  {verbForms.map((row, index) => (
+                  {orderedVerbForms.map((row, index) => (
                     <div className="forms-row" role="row" key={`${row.tense}-${index}`}>
                       <div className="forms-cell tempo" role="cell">{row.tense}</div>
                       <div className="forms-cell" role="cell">{row.forms}</div>
