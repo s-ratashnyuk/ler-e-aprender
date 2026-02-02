@@ -9,6 +9,7 @@ const mapRequestToApi = (payload: translationRequest): translationApiRequest => 
     Word: payload.word,
     ContextLeft: payload.contextLeft,
     ContextRight: payload.contextRight,
+    ContextSentence: payload.contextSentence,
     SourceLanguage: payload.sourceLanguage,
     TargetLanguage: payload.targetLanguage
   };

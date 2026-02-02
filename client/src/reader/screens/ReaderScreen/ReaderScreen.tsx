@@ -6,13 +6,50 @@ import type { textToken } from "../../../types/textToken";
 import { splitTextToTokens } from "../../selection/splitTextToTokens";
 import { useAppDispatch } from "../../../store/hooks/useAppDispatch";
 import { useAppSelector } from "../../../store/hooks/useAppSelector";
-import { selectFirstTranslationsByWord } from "../../../store/readerSlice";
 import { storyText } from "../../../content/storyText";
 import { handleContainerClickCapture as handleContainerClickCaptureImpl } from "./callbacks/handleContainerClickCapture";
 import { handleScroll as handleScrollImpl } from "./callbacks/handleScroll"
 import { handleTokenClick as handleTokenClickImpl } from "./callbacks/handleTokenClick";
 import { renderToken as renderTokenImpl } from "./renderToken";
 import { syncScrollPosition as syncScrollPositionImpl } from "./utils/syncScrollPosition";
+
+const renderBoldText = (value: string): JSX.Element | string => {
+  let normalized = value.replace(/<\/?strong>/gi, (match) =>
+    match.startsWith("</") ? "</b>" : "<b>"
+  );
+  if (!normalized.includes("<b>") && normalized.includes("**")) {
+    const parts = normalized.split("**");
+    normalized = parts
+      .map((part, index) => (index % 2 === 1 ? `<b>${part}</b>` : part))
+      .join("");
+  }
+  if (!normalized.includes("<b>")) {
+    return value;
+  }
+
+  const tagPattern = /<\/?b>/gi;
+  const segments = normalized.split(tagPattern);
+  const tags = normalized.match(tagPattern) ?? [];
+  let isBold = false;
+
+  return (
+    <>
+      {segments.map((segment, index) => {
+        const node = isBold ? (
+          <strong key={`bold-${index}`}>{segment}</strong>
+        ) : (
+          <span key={`text-${index}`}>{segment}</span>
+        );
+
+        if (index < tags.length) {
+          isBold = tags[index].toLowerCase() === "<b>";
+        }
+
+        return node;
+      })}
+    </>
+  );
+};
 
 export const ReaderScreen = (): JSX.Element => {
   const dispatch = useAppDispatch();
@@ -27,8 +64,8 @@ export const ReaderScreen = (): JSX.Element => {
   const activeBookId = useAppSelector(selectActiveBookId);
   const progressByBook = useAppSelector(selectProgressByBook);
   const savedProgress = progressByBook[activeBookId] ?? 0;
-  const savedTranslationsByWord = useAppSelector((state) =>
-    selectFirstTranslationsByWord(state, activeBookId)
+  const savedTranslationsByWord = useAppSelector(
+    (state) => state.reader.translationsByBook[activeBookId] ?? {}
   );
 
   const tokens = useMemo((): textToken[] => splitTextToTokens(storyText), []);
@@ -96,7 +133,8 @@ export const ReaderScreen = (): JSX.Element => {
         savedTranslationsByWord,
         setPopupState,
         setSelectedTokenIndex,
-        tokens
+        tokens,
+        rawText: storyText
       });
     },
     [activeBookId, closePopup, dispatch, popupState.isOpen, savedTranslationsByWord, tokens]
@@ -193,15 +231,15 @@ export const ReaderScreen = (): JSX.Element => {
           </div>
           <div className={`popup${popupState.isOpen ? " is-visible" : ""}`} role="dialog" aria-live="polite">
             <div className="popup-word">{popupWordText}</div>
-            <div className="popup-translation">{popupTranslationText}</div>
+            <div className="popup-translation">{renderBoldText(popupTranslationText)}</div>
             {popupTenseLine ? <div className="popup-subline">{popupTenseLine}</div> : null}
             {usageExamples.length > 0 ? (
               <div className="popup-usage">
                 {usageExamples.map((example, index) => (
                   <div className="usage-item" key={`${example.portuguese}-${index}`}>
                     <div className="usage-label">Uso {index + 1}</div>
-                    <div className="usage-pt">{example.portuguese}</div>
-                    <div className="usage-translation">{example.translation}</div>
+                    <div className="usage-pt">{renderBoldText(example.portuguese)}</div>
+                    <div className="usage-translation">{renderBoldText(example.translation)}</div>
                   </div>
                 ))}
               </div>

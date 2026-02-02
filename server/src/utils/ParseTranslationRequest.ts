@@ -9,6 +9,7 @@ export const parseTranslationRequest = (value: unknown): translationRequest | nu
   const word = recordValue.Word;
   const contextLeft = recordValue.ContextLeft;
   const contextRight = recordValue.ContextRight;
+  const contextSentence = recordValue.ContextSentence;
   const sourceLanguage = recordValue.SourceLanguage;
   const targetLanguage = recordValue.TargetLanguage;
 
@@ -16,6 +17,7 @@ export const parseTranslationRequest = (value: unknown): translationRequest | nu
     typeof word !== "string" ||
     typeof contextLeft !== "string" ||
     typeof contextRight !== "string" ||
+    typeof contextSentence !== "string" ||
     typeof sourceLanguage !== "string" ||
     typeof targetLanguage !== "string"
   ) {
@@ -26,6 +28,7 @@ export const parseTranslationRequest = (value: unknown): translationRequest | nu
     Word: word,
     ContextLeft: contextLeft,
     ContextRight: contextRight,
+    ContextSentence: contextSentence,
     SourceLanguage: sourceLanguage,
     TargetLanguage: targetLanguage
   };

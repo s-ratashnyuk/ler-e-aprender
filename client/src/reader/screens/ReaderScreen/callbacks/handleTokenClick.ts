@@ -7,7 +7,7 @@ import type { translationRequest } from "../../../../types/translationRequest";
 import type { translationResponse } from "../../../../types/translationResponse";
 import { readerSlice } from "../../../../store/readerSlice";
 import { findNearestWordToken } from "../../../selection/findNearestWordToken";
-import { getContextAroundToken } from "../../../selection/getContextAroundToken";
+import { getSentenceContextAroundToken } from "../../../selection/getSentenceContextAroundToken";
 import { buildTranslationEntryId } from "../utils/buildTranslationEntryId";
 import { translateWord } from "../../../../api/translateWord";
 
@@ -17,11 +17,24 @@ type HandleTokenClickParams = {
   dispatch: appDispatch;
   popupStateIsOpen: boolean;
   requestIdRef: MutableRefObject<number>;
-  savedTranslationsByWord: Record<string, translationResponse>;
+  savedTranslationsByWord: Record<string, translationEntry[]>;
   setPopupState: Dispatch<SetStateAction<popupState>>;
   setSelectedTokenIndex: Dispatch<SetStateAction<number | null>>;
   tokenIndex: number;
   tokens: textToken[];
+  rawText: string;
+};
+
+const mapEntryToResponse = (entry: translationEntry): translationResponse => {
+  return {
+    translation: entry.translation,
+    partOfSpeech: entry.partOfSpeech,
+    tense: entry.tense,
+    infinitive: entry.infinitive,
+    isIrregular: entry.isIrregular,
+    usageExamples: entry.usageExamples,
+    verbForms: entry.verbForms
+  };
 };
 
 export const handleTokenClick = async ({
@@ -34,7 +47,8 @@ export const handleTokenClick = async ({
   setPopupState,
   setSelectedTokenIndex,
   tokenIndex,
-  tokens
+  tokens,
+  rawText
 }: HandleTokenClickParams): Promise<void> => {
   if (popupStateIsOpen) {
     return;
@@ -52,14 +66,19 @@ export const handleTokenClick = async ({
   requestIdRef.current = requestId;
 
   const normalizedWord = selectedToken.text.trim().toLocaleLowerCase();
-  const savedTranslation = savedTranslationsByWord[normalizedWord] ?? null;
+  const context = getSentenceContextAroundToken(rawText, tokens, selectedToken, 10);
+  const savedTranslations = savedTranslationsByWord[normalizedWord] ?? [];
+  const matchingEntry = savedTranslations.find(
+    (entry) =>
+      entry.contextLeft === context.contextLeft && entry.contextRight === context.contextRight
+  );
 
-  if (savedTranslation) {
+  if (matchingEntry) {
     setPopupState({
       isOpen: true,
       statusText: "",
       word: selectedToken.text,
-      response: savedTranslation
+      response: mapEntryToResponse(matchingEntry)
     });
     return;
   }
@@ -71,12 +90,12 @@ export const handleTokenClick = async ({
     response: null
   });
 
-  const context = getContextAroundToken(tokens, selectedToken, 4);
   const payload: translationRequest = {
     word: selectedToken.text,
     contextLeft: context.contextLeft,
     contextRight: context.contextRight,
-    sourceLanguage: "Portugues de Portugal",
+    contextSentence: context.sentence,
+    sourceLanguage: "Portuguese (Portugal)",
     targetLanguage: "Russo"
   };
 
