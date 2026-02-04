@@ -10,6 +10,7 @@
   --card: #fffdfb;
   --text: #3e3a34;
   --accent: #0f6b5c;
+  --translated: #2c92d1;
   --highlight: #cfeae4;
   --popup-text: #2d2924;
   --muted: #7a736b;
@@ -86,6 +87,10 @@ body {
   border-radius: 6px;
   padding: 2px 4px;
   font-weight: 400;
+}
+
+.word-token.is-translated {
+  color: var(--translated);
 }
 
 .word-token.is-selected {

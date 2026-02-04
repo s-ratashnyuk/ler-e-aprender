@@ -52,6 +52,8 @@ const renderBoldText = (value: string): JSX.Element | string => {
   );
 };
 
+const normalizeWord = (value: string): string => value.trim().toLocaleLowerCase();
+
 export const ReaderScreen = (): JSX.Element => {
   const dispatch = useAppDispatch();
   const selectActiveBookId = useCallback(
@@ -68,6 +70,12 @@ export const ReaderScreen = (): JSX.Element => {
   const savedTranslationsByWord = useAppSelector(
     (state) => state.reader.translationsByBook[activeBookId] ?? {}
   );
+  const translatedWords = useMemo(() => {
+    const entries = Object.entries(savedTranslationsByWord);
+    return new Set(
+      entries.filter(([, values]) => values.length > 0).map(([word]) => word)
+    );
+  }, [savedTranslationsByWord]);
 
   const tokens = useMemo((): textToken[] => splitTextToTokens(storyText), []);
   const textContainerRef = useRef<HTMLDivElement | null>(null);
@@ -235,13 +243,17 @@ export const ReaderScreen = (): JSX.Element => {
 
   const renderToken = useCallback(
     (token: textToken): JSX.Element => {
+      const isTranslated =
+        token.type === "word" && translatedWords.has(normalizeWord(token.text));
+
       return renderTokenImpl({
         token,
         onTokenClick: handleTokenClick,
-        selectedTokenIndex
+        selectedTokenIndex,
+        isTranslated
       });
     },
-    [handleTokenClick, selectedTokenIndex]
+    [handleTokenClick, selectedTokenIndex, translatedWords]
   );
 
   return (

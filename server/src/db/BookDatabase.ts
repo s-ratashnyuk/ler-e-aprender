@@ -198,9 +198,10 @@ export class BookDatabase {
       ["Pres. do ind.", 0],
       ["Pretérito perf.", 1],
       ["Pretérito imperf.", 2],
-      ["Fut.", 3],
-      ["Part. pass.", 4],
-      ["Imperativo", 5]
+      ["Pretérito mais-que-perfeito", 3],
+      ["Fut.", 4],
+      ["Part. pass.", 5],
+      ["Imperativo", 6]
     ]);
     normalizedRows.sort((a, b) => (order.get(a.Tense) ?? 99) - (order.get(b.Tense) ?? 99));
 
