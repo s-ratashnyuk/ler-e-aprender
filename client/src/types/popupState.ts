@@ -5,4 +5,5 @@ export type popupState = {
   statusText: string;
   word: string;
   response: translationResponse | null;
+  isTranslationPending: boolean;
 };

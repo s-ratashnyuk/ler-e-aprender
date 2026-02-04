@@ -37,6 +37,16 @@ const mapEntryToResponse = (entry: translationEntry): translationResponse => {
   };
 };
 
+const getMostRecentEntry = (entries: translationEntry[]): translationEntry | null => {
+  if (entries.length === 0) {
+    return null;
+  }
+
+  return entries.reduce<translationEntry>((latest, entry) => {
+    return entry.timestamp > latest.timestamp ? entry : latest;
+  }, entries[0]);
+};
+
 export const handleTokenClick = async ({
   activeBookId,
   closePopup,
@@ -78,16 +88,21 @@ export const handleTokenClick = async ({
       isOpen: true,
       statusText: "",
       word: selectedToken.text,
-      response: mapEntryToResponse(matchingEntry)
+      response: mapEntryToResponse(matchingEntry),
+      isTranslationPending: false
     });
     return;
   }
 
+  const fallbackEntry = getMostRecentEntry(savedTranslations);
+  const fallbackResponse = fallbackEntry ? mapEntryToResponse(fallbackEntry) : null;
+
   setPopupState({
     isOpen: true,
-    statusText: "A traduzir...",
+    statusText: "",
     word: selectedToken.text,
-    response: null
+    response: fallbackResponse,
+    isTranslationPending: true
   });
 
   const payload: translationRequest = {
@@ -109,7 +124,8 @@ export const handleTokenClick = async ({
       isOpen: true,
       statusText: "",
       word: selectedToken.text,
-      response: translation
+      response: translation,
+      isTranslationPending: false
     });
 
     const entry: translationEntry = {
@@ -132,12 +148,17 @@ export const handleTokenClick = async ({
       entry
     }));
   } catch (error) {
+    if (requestId !== requestIdRef.current) {
+      return;
+    }
+
     const message = error instanceof Error ? error.message : "Erro ao traduzir.";
     setPopupState({
       isOpen: true,
       statusText: message,
       word: selectedToken.text,
-      response: null
+      response: fallbackResponse,
+      isTranslationPending: false
     });
   }
 };
