@@ -4,6 +4,7 @@ import type { popupState } from "../../../../types/popupState";
 import type { textToken } from "../../../../types/textToken";
 import type { translationEntry } from "../../../../types/translationEntry";
 import type { translationRequest } from "../../../../types/translationRequest";
+import type { translationResponse } from "../../../../types/translationResponse";
 import { readerSlice } from "../../../../store/readerSlice";
 import { translateWord } from "../../../../api/translateWord";
 import { findNearestWordToken } from "../../../selection/findNearestWordToken";
@@ -13,6 +14,7 @@ import { buildTranslationEntryId } from "../utils/buildTranslationEntryId";
 type HandleRefreshClickParams = {
   activeBookId: string;
   dispatch: appDispatch;
+  fallbackResponse: translationResponse | null;
   requestIdRef: MutableRefObject<number>;
   selectedTokenIndex: number | null;
   setPopupState: Dispatch<SetStateAction<popupState>>;
@@ -23,6 +25,7 @@ type HandleRefreshClickParams = {
 export const handleRefreshClick = async ({
   activeBookId,
   dispatch,
+  fallbackResponse,
   requestIdRef,
   selectedTokenIndex,
   setPopupState,
@@ -45,9 +48,10 @@ export const handleRefreshClick = async ({
 
   setPopupState({
     isOpen: true,
-    statusText: "A traduzir...",
+    statusText: "",
     word: selectedToken.text,
-    response: null
+    response: fallbackResponse,
+    isTranslationPending: true
   });
 
   const payload: translationRequest = {
@@ -73,7 +77,8 @@ export const handleRefreshClick = async ({
       isOpen: true,
       statusText: "",
       word: selectedToken.text,
-      response: translation
+      response: translation,
+      isTranslationPending: false
     });
 
     const entry: translationEntry = {
@@ -106,7 +111,8 @@ export const handleRefreshClick = async ({
       isOpen: true,
       statusText: message,
       word: selectedToken.text,
-      response: null
+      response: fallbackResponse,
+      isTranslationPending: false
     });
   }
 };

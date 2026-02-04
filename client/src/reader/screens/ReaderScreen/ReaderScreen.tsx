@@ -78,7 +78,8 @@ export const ReaderScreen = (): JSX.Element => {
     isOpen: false,
     statusText: "",
     word: "",
-    response: null
+    response: null,
+    isTranslationPending: false
   });
 
   const syncScrollPosition = useCallback((): void => {
@@ -97,7 +98,8 @@ export const ReaderScreen = (): JSX.Element => {
       isOpen: false,
       statusText: "",
       word: "",
-      response: null
+      response: null,
+      isTranslationPending: false
     });
   }, []);
 
@@ -145,13 +147,22 @@ export const ReaderScreen = (): JSX.Element => {
     await handleRefreshClickImpl({
       activeBookId,
       dispatch,
+      fallbackResponse: popupState.response,
       requestIdRef,
       selectedTokenIndex,
       setPopupState,
       tokens,
       rawText: storyText
     });
-  }, [activeBookId, dispatch, requestIdRef, selectedTokenIndex, setPopupState, tokens]);
+  }, [
+    activeBookId,
+    dispatch,
+    popupState.response,
+    requestIdRef,
+    selectedTokenIndex,
+    setPopupState,
+    tokens
+  ]);
 
   const popupWordText = popupState.response
     ? (() => {
@@ -170,9 +181,7 @@ export const ReaderScreen = (): JSX.Element => {
     })()
     : popupState.word || popupState.statusText;
 
-  const popupTranslationText = popupState.response
-    ? popupState.response.translation
-    : popupState.statusText;
+  const popupTranslationText = popupState.response?.translation ?? "";
 
   const popupTenseLine = popupState.response
     ? (() => {
@@ -199,10 +208,11 @@ export const ReaderScreen = (): JSX.Element => {
     })()
     : "";
 
-  const isTranslationPending = popupState.statusText === "A traduzir...";
+  const isTranslationPending = popupState.isTranslationPending;
   const refreshDisabled = selectedTokenIndex === null || !popupState.word.trim() || isTranslationPending;
 
-  const usageExamples = popupState.response?.usageExamples ?? [];
+  const usageExamples =
+    isTranslationPending || popupState.statusText ? [] : popupState.response?.usageExamples ?? [];
   const verbForms = popupState.response?.verbForms ?? [];
   const orderedVerbForms = useMemo(() => {
     if (verbForms.length === 0) {
@@ -249,7 +259,12 @@ export const ReaderScreen = (): JSX.Element => {
           >
             {tokens.map(renderToken)}
           </div>
-          <div className={`popup${popupState.isOpen ? " is-visible" : ""}`} role="dialog" aria-live="polite">
+          <div
+            className={`popup${popupState.isOpen ? " is-visible" : ""}`}
+            role="dialog"
+            aria-live="polite"
+            aria-busy={isTranslationPending}
+          >
             <div className="popup-header">
               <div className="popup-word">{popupWordText}</div>
               <button
@@ -280,7 +295,18 @@ export const ReaderScreen = (): JSX.Element => {
                 </svg>
               </button>
             </div>
-            <div className="popup-translation">{renderBoldText(popupTranslationText)}</div>
+            <div className={`popup-translation${isTranslationPending ? " is-loading" : ""}`}>
+              {isTranslationPending ? (
+                <div className="translation-loading" role="status" aria-live="polite">
+                  <span className="translation-spinner" aria-hidden="true" />
+                  <span>A traduzir...</span>
+                </div>
+              ) : popupState.statusText ? (
+                <span className="translation-error">{popupState.statusText}</span>
+              ) : (
+                renderBoldText(popupTranslationText)
+              )}
+            </div>
             {popupTenseLine ? <div className="popup-subline">{popupTenseLine}</div> : null}
             {usageExamples.length > 0 ? (
               <div className="popup-usage">
