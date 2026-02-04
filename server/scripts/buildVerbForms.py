@@ -154,6 +154,10 @@ def build_rows(moods: Dict[str, Any]) -> List[Dict[str, str]]:
     if imperfect:
         rows.append({"Tense": "Pretérito imperf.", "Forms": imperfect})
 
+    pluperfect = build_forms(moods, "indicativo", "pretérito-mais-que-perfeito")
+    if pluperfect:
+        rows.append({"Tense": "Pretérito mais-que-perfeito", "Forms": pluperfect})
+
     future = build_forms(moods, "indicativo", "futuro-do-presente")
     if future:
         rows.append({"Tense": "Fut.", "Forms": future})
