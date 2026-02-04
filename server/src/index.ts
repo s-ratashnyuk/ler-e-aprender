@@ -100,6 +100,7 @@ app.post("/api/translate", async (context): Promise<Response> => {
       });
     }
 
+    const isPending = inflightTranslations.has(cacheKey) || shouldQueueTranslation;
     const rawWordTranslation = cached?.wordTranslation ?? "";
     const usageExamples = (() => {
       try {
@@ -136,7 +137,7 @@ app.post("/api/translate", async (context): Promise<Response> => {
       Tense: card.tense,
       Infinitive: card.infinitive,
       IsIrregular: card.isIrregular,
-      IsPending: shouldQueueTranslation,
+      IsPending: isPending,
       UsageExamples: safeUsageExamples,
       VerbForms: card.verbForms
     });

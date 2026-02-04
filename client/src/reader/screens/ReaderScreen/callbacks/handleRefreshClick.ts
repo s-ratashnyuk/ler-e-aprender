@@ -67,11 +67,16 @@ export const handleRefreshClick = async ({
     forceRefresh: true
   };
 
+  const pollPayload: translationRequest = {
+    ...payload,
+    forceRefresh: false
+  };
+
   const pollUntilReady = async (): Promise<translationResponse | null> => {
     const delays = [600, 900, 1200, 1500, 1800, 2200];
     for (const delayMs of delays) {
       await new Promise((resolve) => setTimeout(resolve, delayMs));
-      const next = await translateWord(payload);
+      const next = await translateWord(pollPayload);
       if (requestId !== requestIdRef.current) {
         return null;
       }

@@ -47,6 +47,9 @@ const buildTenseLabel = (token: tokenRecord): string => {
   if (mood === "participle") {
     return "particípio";
   }
+  if (mood === "pastparticiple") {
+    return "part. pass.";
+  }
   if (mood === "imperative") {
     return "imperativo";
   }
@@ -61,8 +64,14 @@ const buildTenseLabel = (token: tokenRecord): string => {
     if (tense === "imperfect") {
       return "pretérito imperf.";
     }
+    if (tense === "conditional") {
+      return "fut. do pret.";
+    }
     if (tense === "future") {
       return "fut.";
+    }
+    if (tense === "plusquamperfect") {
+      return "pretérito mais-que-perfeito";
     }
     return "";
   })();

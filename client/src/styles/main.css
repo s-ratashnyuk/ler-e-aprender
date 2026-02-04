@@ -203,7 +203,7 @@ body {
 
 .popup-translation {
   font-family: "Literata", serif;
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 600;
   color: var(--popup-text);
   line-height: 1.2;
@@ -236,14 +236,14 @@ body {
 
 .usage-pt {
   font-family: "Work Sans", sans-serif;
-  font-size: 14px;
+  font-size: 15px;
   color: var(--text);
   line-height: 1.4;
 }
 
 .usage-translation {
   font-family: "Work Sans", sans-serif;
-  font-size: 12px;
+  font-size: 15px;
   color: var(--muted-2);
   line-height: 1.3;
 }
