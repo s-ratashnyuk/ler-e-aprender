@@ -2,3 +2,8 @@ node_modules/
 client/dist/
 server/dist/
 server/.env
+server/data/
+venv
+__pycache__
+.log
+.DS_Store

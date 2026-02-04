@@ -1,6 +1,7 @@
 export type translationResponse = {
   translation: string;
   partOfSpeech: string;
+  gender: string;
   tense: string;
   infinitive: string;
   isIrregular: boolean;

@@ -5,6 +5,7 @@ export type translationEntry = {
   contextRight: string;
   translation: string;
   partOfSpeech: string;
+  gender: string;
   tense: string;
   infinitive: string;
   isIrregular: boolean;

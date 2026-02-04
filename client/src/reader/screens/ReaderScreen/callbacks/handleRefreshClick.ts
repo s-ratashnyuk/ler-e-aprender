@@ -51,12 +51,16 @@ export const handleRefreshClick = async ({
   });
 
   const payload: translationRequest = {
+    bookId: activeBookId,
+    tokenStart: selectedToken.startIndex,
+    tokenEnd: selectedToken.endIndex,
     word: selectedToken.text,
     contextLeft: context.contextLeft,
     contextRight: context.contextRight,
     contextSentence: context.sentence,
     sourceLanguage: "Portuguese (Portugal)",
-    targetLanguage: "Russo"
+    targetLanguage: "Russo",
+    forceRefresh: true
   };
 
   try {
@@ -79,6 +83,7 @@ export const handleRefreshClick = async ({
       contextRight: context.contextRight,
       translation: translation.translation,
       partOfSpeech: translation.partOfSpeech,
+      gender: translation.gender,
       tense: translation.tense,
       infinitive: translation.infinitive,
       isIrregular: translation.isIrregular,

@@ -11,6 +11,7 @@ const translationResponseSchema: Record<string, unknown> = {
   properties: {
     Translation: { type: "string" },
     PartOfSpeech: { type: "string" },
+    Gender: { type: "string" },
     Tense: { type: "string" },
     Infinitive: { type: "string" },
     IsIrregular: { type: "boolean" },
@@ -42,6 +43,7 @@ const translationResponseSchema: Record<string, unknown> = {
   required: [
     "Translation",
     "PartOfSpeech",
+    "Gender",
     "Tense",
     "Infinitive",
     "IsIrregular",
@@ -78,7 +80,7 @@ export const createTranslation = async (
   request: translationRequest
 ): Promise<translationResponse> => {
   const response = await openAiClient.responses.create({
-    model: "gpt-5-mini",
+    model: "gpt-4o-mini",
     instructions: buildSystemInstructions(),
     input: buildUserPrompt(request),
     text: {

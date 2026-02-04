@@ -1,6 +1,7 @@
 export type translationApiResponse = {
   Translation: string;
   PartOfSpeech: string;
+  Gender: string;
   Tense: string;
   Infinitive: string;
   IsIrregular: boolean;

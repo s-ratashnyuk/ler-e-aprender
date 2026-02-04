@@ -6,12 +6,16 @@ import type { usageExample, verbFormRow } from "../types/translationResponse";
 
 const mapRequestToApi = (payload: translationRequest): translationApiRequest => {
   return {
+    BookId: payload.bookId,
+    TokenStart: payload.tokenStart,
+    TokenEnd: payload.tokenEnd,
     Word: payload.word,
     ContextLeft: payload.contextLeft,
     ContextRight: payload.contextRight,
     ContextSentence: payload.contextSentence,
     SourceLanguage: payload.sourceLanguage,
-    TargetLanguage: payload.targetLanguage
+    TargetLanguage: payload.targetLanguage,
+    ForceRefresh: payload.forceRefresh
   };
 };
 
@@ -29,6 +33,7 @@ const mapResponseFromApi = (payload: translationApiResponse): translationRespons
   return {
     translation: payload.Translation,
     partOfSpeech: payload.PartOfSpeech,
+    gender: payload.Gender ?? "",
     tense: payload.Tense,
     infinitive: payload.Infinitive,
     isIrregular: payload.IsIrregular,

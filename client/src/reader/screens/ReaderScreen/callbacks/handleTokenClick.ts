@@ -29,6 +29,7 @@ const mapEntryToResponse = (entry: translationEntry): translationResponse => {
   return {
     translation: entry.translation,
     partOfSpeech: entry.partOfSpeech,
+    gender: entry.gender ?? "",
     tense: entry.tense,
     infinitive: entry.infinitive,
     isIrregular: entry.isIrregular,
@@ -91,6 +92,9 @@ export const handleTokenClick = async ({
   });
 
   const payload: translationRequest = {
+    bookId: activeBookId,
+    tokenStart: selectedToken.startIndex,
+    tokenEnd: selectedToken.endIndex,
     word: selectedToken.text,
     contextLeft: context.contextLeft,
     contextRight: context.contextRight,
@@ -119,6 +123,7 @@ export const handleTokenClick = async ({
       contextRight: context.contextRight,
       translation: translation.translation,
       partOfSpeech: translation.partOfSpeech,
+      gender: translation.gender,
       tense: translation.tense,
       infinitive: translation.infinitive,
       isIrregular: translation.isIrregular,

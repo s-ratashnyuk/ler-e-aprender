@@ -26,6 +26,7 @@ const mapEntryToResponse = (entry: translationEntry): translationResponse => {
   return {
     translation: entry.translation,
     partOfSpeech: entry.partOfSpeech,
+    gender: entry.gender ?? "",
     tense: entry.tense,
     infinitive: entry.infinitive,
     isIrregular: entry.isIrregular,

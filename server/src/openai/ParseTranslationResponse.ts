@@ -6,6 +6,7 @@ export const parseTranslationResponse = (outputText: string): translationRespons
   const parsed = JSON.parse(jsonText) as Record<string, unknown>;
   const translation = parsed.Translation;
   const partOfSpeech = parsed.PartOfSpeech;
+  const gender = parsed.Gender;
   const tense = parsed.Tense;
   const infinitive = parsed.Infinitive;
   const isIrregular = parsed.IsIrregular;
@@ -15,6 +16,7 @@ export const parseTranslationResponse = (outputText: string): translationRespons
   if (
     typeof translation !== "string" ||
     typeof partOfSpeech !== "string" ||
+    typeof gender !== "string" ||
     typeof tense !== "string" ||
     typeof infinitive !== "string" ||
     typeof isIrregular !== "boolean" ||
@@ -59,6 +61,7 @@ export const parseTranslationResponse = (outputText: string): translationRespons
   return {
     Translation: translation,
     PartOfSpeech: partOfSpeech,
+    Gender: gender,
     Tense: tense,
     Infinitive: infinitive,
     IsIrregular: isIrregular,

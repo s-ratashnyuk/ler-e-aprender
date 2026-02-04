@@ -178,20 +178,24 @@ export const ReaderScreen = (): JSX.Element => {
     ? (() => {
       const tenseLabel = popupState.response.tense.trim();
       const infinitive = popupState.response.infinitive.trim();
+      const gender = (popupState.response.gender ?? "").trim();
 
-      if (!tenseLabel && !infinitive) {
+      if (!tenseLabel && !infinitive && !gender) {
         return "";
       }
 
-      if (tenseLabel && infinitive) {
-        return `${tenseLabel}, inf.: ${infinitive}`;
+      const parts: string[] = [];
+      if (tenseLabel) {
+        parts.push(tenseLabel);
       }
-
       if (infinitive) {
-        return `inf.: ${infinitive}`;
+        parts.push(`inf.: ${infinitive}`);
+      }
+      if (gender) {
+        parts.push(`género: ${gender}`);
       }
 
-      return tenseLabel;
+      return parts.join(" | ");
     })()
     : "";
 

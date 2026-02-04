@@ -1,5 +1,4 @@
-export const storyText = `
-Se eu quisesse encontrar uma palavra que fosse capaz de resumir o que foi essencial na minha vida, acho que escolhia a palavra «Poesia», que ainda por cima rima com o meu nome próprio: Sophia.
+export const storyText = `Se eu quisesse encontrar uma palavra que fosse capaz de resumir o que foi essencial na minha vida, acho que escolhia a palavra «Poesia», que ainda por cima rima com o meu nome próprio: Sophia.
 
 É certo que também escrevi contos, livros para crianças, teatro e ensaio, e que também fiz traduções, mas, observando à distância tudo aquilo que escrevi ao longo da minha vida, entendo que a poesia fez sempre questão de estar presente na forma como escolhi as palavras, como construí as frases, como encontrei a música profunda que as habita e como procurei em todas e em cada uma delas o som e o sentido que me pareciam mais belos e capazes de tocarem o leitor.
 
@@ -115,7 +114,19 @@ Olhando para o passado a esta distância no tempo, posso dizer que nunca me deix
 
 Foi nessa época que escrevi um poema, do qual continuei sempre a gostar muito, intitulado «Porque». Nesse poema consegui resumir a minha revolta por viver num país assim, e também a ausência de medo nas atitudes que tomava na minha vida.
 
-[poema omitido — texto protegido por direitos de autor]
+Porque os outros se mascaram mas tu não
+Porque os outros usam a virtude
+Para comprar o que não tem perdão.
+Porque os outros têm medo mas tu não.
+Porque os outros são os túmulos caiados
+Onde germina calada a podridão.
+Porque os outros se calam mas tu não.
+Porque os outros se compram e se vendem
+E os seus gestos dão sempre dividendo.
+Porque os outros são hábeis mas tu não.
+Porque os outros vão à sombra dos abrigos
+E tu vais de mãos dadas com os perigos.
+Porque os outros calculam mas t u não.
 
 Este poema viria depois, no final da década de 1960, a ser musicado e cantado por Francisco Fanhais, um padre que se afastou de uma igreja que considerava ser cúmplice da ditadura e que gravou um disco intitulado Canções da Cidade Nova.
 
@@ -143,7 +154,13 @@ Sobre a praia da Granja, recordo-me de ter escrito numa carta ao poeta Miguel To
 
 Ainda hoje penso e falo das rosas com versos como estes:
 
-[poema omitido — texto protegido por direitos de autor]
+Quando à noite desfolho e trinco as rosas
+É como se prendesse entre os meus dentes
+Todo o luar das noites transparentes,
+Todo o fulgor das tardes luminosas,
+O vento bailador das primaveras,
+A doçura amarga dos poentes,
+E a exaltação de todas as esperas.
 
 Vale a pena ser e nascer poeta para falar como mais ninguém fala, das pequenas coisas e da grandeza, embora vivendo desse mistério que mora na poesia, em que as palavras se atrevem para lá dos seus sons e sentidos, sem se explicarem.
 
@@ -206,7 +223,15 @@ Parece um poeta a escrever sobre a Poesia, e poucos poetas teriam escrito de for
 
 Talvez se possa falar de poesia, da Poesia, usando estas palavras que usei num livro antigo. O livro chama-se apenas Poesia:
 
-[poema omitido — texto protegido por direitos de autor]
+Se todo o ser ao vento abandonamos
+E sem medo nem dó nos destruímos,
+Se morremos em tudo o que sentimos
+E podemos cantar, é porque estamos
+Nus, em sangue, embalando a própria dor
+Em frente às madrugadas do amor.
+Quando a manhã brilhar refloriremos
+E a alma beberá esse esplendor
+Prometido nas formas que perdemos.
 
 Há, sempre houve, muitas maneiras de definir a Poesia não a definindo. Esta é apenas uma delas. E a melhor é seguramente escrevê-la sem tentar explicá-la. É no ato da escrita que reside todo o mistério, toda a magia.
 
@@ -216,13 +241,20 @@ Era a minha ilusão, a minha suspeita, a minha inocência. Imaginava-os suspenso
 
 Depois, houve poetas que quiseram falar de mim para melhor poderem falar da Poesia. Recordo António Ramos Rosa, ao dizer, num poema que me dedicou:
 
-[poema omitido — texto protegido por direitos de autor]
+Vejo-te sempre vertical num apogeu azul
+em que ce!ebras as coisas e pronuncias os nomes
+com_ a claridade das cúpulas e das evidências solares
+Em impetos claros vais figurando o cristal
+que dos atos transferes para as palavras límpidas
 
 Obrigada, António. Obrigada, Poesia.
 
 Talvez eu pudesse ter-lhe respondido com estes versos de um outro livro que publiquei:
 
-[poema omitido — texto protegido por direitos de autor]
+A min_ha pátria é onde o vento passa,
+A minha amada é onde os roseirais dão flor
+O meu desejo é o rastro que ficou das ave;
+E nunca acordo deste sonho e nunca durmo.
 
 Este deve ser, sempre foi, o grande segredo dos poetas: nunca chegam a acordar do sonho e, ao mesmo tempo, nunca dormem. É esse o seu segredo. É esse o seu mistério.
 

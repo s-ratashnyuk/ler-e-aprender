@@ -11,6 +11,7 @@ export type verbFormRow = {
 export type translationResponse = {
   Translation: string;
   PartOfSpeech: string;
+  Gender: string;
   Tense: string;
   Infinitive: string;
   IsIrregular: boolean;
