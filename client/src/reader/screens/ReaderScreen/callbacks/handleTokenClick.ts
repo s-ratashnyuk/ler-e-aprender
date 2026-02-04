@@ -15,7 +15,6 @@ type HandleTokenClickParams = {
   activeBookId: string;
   closePopup: () => void;
   dispatch: appDispatch;
-  popupStateIsOpen: boolean;
   requestIdRef: MutableRefObject<number>;
   savedTranslationsByWord: Record<string, translationEntry[]>;
   setPopupState: Dispatch<SetStateAction<popupState>>;
@@ -33,6 +32,7 @@ const mapEntryToResponse = (entry: translationEntry): translationResponse => {
     tense: entry.tense,
     infinitive: entry.infinitive,
     isIrregular: entry.isIrregular,
+    isPending: false,
     usageExamples: entry.usageExamples,
     verbForms: entry.verbForms
   };
@@ -52,7 +52,6 @@ export const handleTokenClick = async ({
   activeBookId,
   closePopup,
   dispatch,
-  popupStateIsOpen,
   requestIdRef,
   savedTranslationsByWord,
   setPopupState,
@@ -61,10 +60,6 @@ export const handleTokenClick = async ({
   tokens,
   rawText
 }: HandleTokenClickParams): Promise<void> => {
-  if (popupStateIsOpen) {
-    return;
-  }
-
   const selectedToken = findNearestWordToken(tokens, tokenIndex);
   if (!selectedToken) {
     closePopup();
@@ -118,6 +113,21 @@ export const handleTokenClick = async ({
     targetLanguage: "Russo"
   };
 
+  const pollUntilReady = async (): Promise<translationResponse | null> => {
+    const delays = [600, 900, 1200, 1500, 1800, 2200];
+    for (const delayMs of delays) {
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+      const next = await translateWord(payload);
+      if (requestId !== requestIdRef.current) {
+        return null;
+      }
+      if (!next.isPending) {
+        return next;
+      }
+    }
+    return null;
+  };
+
   try {
     const translation = await translateWord(payload);
     if (requestId !== requestIdRef.current) {
@@ -129,29 +139,51 @@ export const handleTokenClick = async ({
       statusText: "",
       word: selectedToken.text,
       response: translation,
-      isTranslationPending: false
+      isTranslationPending: translation.isPending
     });
 
-    const entry: translationEntry = {
-      id: buildTranslationEntryId(selectedToken.text, context.contextLeft, context.contextRight),
-      word: selectedToken.text,
-      contextLeft: context.contextLeft,
-      contextRight: context.contextRight,
-      translation: translation.translation,
-      partOfSpeech: translation.partOfSpeech,
-      gender: translation.gender,
-      tense: translation.tense,
-      infinitive: translation.infinitive,
-      isIrregular: translation.isIrregular,
-      usageExamples: translation.usageExamples,
-      verbForms: translation.verbForms,
-      timestamp: Date.now()
+    const finalizeTranslation = (resolved: translationResponse): void => {
+      setPopupState({
+        isOpen: true,
+        statusText: "",
+        word: selectedToken.text,
+        response: resolved,
+        isTranslationPending: false
+      });
+
+      const entry: translationEntry = {
+        id: buildTranslationEntryId(selectedToken.text, context.contextLeft, context.contextRight),
+        word: selectedToken.text,
+        contextLeft: context.contextLeft,
+        contextRight: context.contextRight,
+        translation: resolved.translation,
+        partOfSpeech: resolved.partOfSpeech,
+        gender: resolved.gender,
+        tense: resolved.tense,
+        infinitive: resolved.infinitive,
+        isIrregular: resolved.isIrregular,
+        usageExamples: resolved.usageExamples,
+        verbForms: resolved.verbForms,
+        timestamp: Date.now()
+      };
+
+      dispatch(readerSlice.actions.addTranslation({
+        bookId: activeBookId,
+        entry
+      }));
     };
 
-    dispatch(readerSlice.actions.addTranslation({
-      bookId: activeBookId,
-      entry
-    }));
+    if (!translation.isPending) {
+      finalizeTranslation(translation);
+      return;
+    }
+
+    const resolved = await pollUntilReady();
+    if (!resolved || requestId !== requestIdRef.current) {
+      return;
+    }
+
+    finalizeTranslation(resolved);
   } catch (error) {
     if (requestId !== requestIdRef.current) {
       return;

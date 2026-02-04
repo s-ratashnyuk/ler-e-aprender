@@ -37,6 +37,7 @@ const mapResponseFromApi = (payload: translationApiResponse): translationRespons
     tense: payload.Tense,
     infinitive: payload.Infinitive,
     isIrregular: payload.IsIrregular,
+    isPending: payload.IsPending ?? false,
     usageExamples,
     verbForms
   };

@@ -5,6 +5,7 @@ export type translationApiResponse = {
   Tense: string;
   Infinitive: string;
   IsIrregular: boolean;
+  IsPending?: boolean;
   UsageExamples: usageExampleApi[];
   VerbForms: verbFormRowApi[];
 };

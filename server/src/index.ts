@@ -11,6 +11,25 @@ import { buildWordCard } from "./utils/BuildWordCard";
 
 const openAiKey = requireEnv("OPENAI_API_KEY");
 const openAiClient = new OpenAI({ apiKey: openAiKey });
+const inflightTranslations = new Map<string, Promise<void>>();
+
+const queueTranslation = (key: string, task: () => Promise<void>): void => {
+  if (inflightTranslations.has(key)) {
+    return;
+  }
+
+  const promise = (async (): Promise<void> => {
+    try {
+      await task();
+    } catch (error) {
+      console.error("Translation background task failed.", error);
+    } finally {
+      inflightTranslations.delete(key);
+    }
+  })();
+
+  inflightTranslations.set(key, promise);
+};
 
 const app = new Hono();
 
@@ -45,47 +64,46 @@ app.post("/api/translate", async (context): Promise<Response> => {
     const { rows: verbForms, isIrregular } = db.getVerbForms(token.lemma);
     const card = buildWordCard(token, verbForms, isIrregular);
     const contextHash = hashContext(translationRequest.ContextSentence);
+    const cacheKey = `${token.id}:${contextHash}:${translationRequest.TargetLanguage}`;
 
     const shouldForceRefresh = translationRequest.ForceRefresh === true;
-    let cached = shouldForceRefresh
-      ? null
-      : db.getCachedTranslation(
-        token.id,
-        contextHash,
-        translationRequest.TargetLanguage
-      );
+    const cached = db.getCachedTranslation(
+      token.id,
+      contextHash,
+      translationRequest.TargetLanguage
+    );
+    const shouldQueueTranslation = !cached || shouldForceRefresh;
 
-    if (!cached) {
-      const translation = await createWordAndSentenceTranslation(openAiClient, {
-        word: wordSurface,
-        lemma: token.lemma,
-        partOfSpeech: card.partOfSpeech,
-        sentence: translationRequest.ContextSentence,
-        sourceLanguage: translationRequest.SourceLanguage,
-        targetLanguage: translationRequest.TargetLanguage
-      });
+    if (shouldQueueTranslation) {
+      queueTranslation(cacheKey, async () => {
+        const translation = await createWordAndSentenceTranslation(openAiClient, {
+          word: wordSurface,
+          lemma: token.lemma,
+          partOfSpeech: card.partOfSpeech,
+          sentence: translationRequest.ContextSentence,
+          sourceLanguage: translationRequest.SourceLanguage,
+          targetLanguage: translationRequest.TargetLanguage
+        });
 
-      if (translation.Translation && translation.Translation !== "I don't know") {
+        const normalizedTranslation = translation.Translation.trim() || "I don't know";
+        const usageExamples =
+          normalizedTranslation === "I don't know" ? [] : translation.UsageExamples;
+
         db.upsertCachedTranslation(
           token.id,
           contextHash,
           translationRequest.ContextSentence,
           translationRequest.TargetLanguage,
-          translation.Translation,
-          JSON.stringify(translation.UsageExamples)
+          normalizedTranslation,
+          JSON.stringify(usageExamples)
         );
-      }
-
-      cached = {
-        wordTranslation: translation.Translation,
-        usageExamplesJson: JSON.stringify(translation.UsageExamples)
-      };
+      });
     }
 
-    const rawWordTranslation = cached.wordTranslation;
+    const rawWordTranslation = cached?.wordTranslation ?? "";
     const usageExamples = (() => {
       try {
-        const parsed = JSON.parse(cached.usageExamplesJson) as Array<{
+        const parsed = JSON.parse(cached?.usageExamplesJson ?? "[]") as Array<{
           Portuguese: string;
           Translation: string;
         }>;
@@ -118,6 +136,7 @@ app.post("/api/translate", async (context): Promise<Response> => {
       Tense: card.tense,
       Infinitive: card.infinitive,
       IsIrregular: card.isIrregular,
+      IsPending: shouldQueueTranslation,
       UsageExamples: safeUsageExamples,
       VerbForms: card.verbForms
     });

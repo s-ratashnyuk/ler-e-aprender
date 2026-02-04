@@ -131,7 +131,6 @@ export const ReaderScreen = (): JSX.Element => {
         activeBookId,
         closePopup,
         dispatch,
-        popupStateIsOpen: popupState.isOpen,
         requestIdRef,
         savedTranslationsByWord,
         setPopupState,
@@ -140,7 +139,7 @@ export const ReaderScreen = (): JSX.Element => {
         rawText: storyText
       });
     },
-    [activeBookId, closePopup, dispatch, popupState.isOpen, savedTranslationsByWord, tokens]
+    [activeBookId, closePopup, dispatch, savedTranslationsByWord, tokens]
   );
 
   const handleRefreshClick = useCallback(async (): Promise<void> => {
@@ -295,14 +294,41 @@ export const ReaderScreen = (): JSX.Element => {
                 </svg>
               </button>
             </div>
-            <div className={`popup-translation${isTranslationPending ? " is-loading" : ""}`}>
+            <div className="popup-translation">
               {isTranslationPending ? (
-                <div className="translation-loading" role="status" aria-live="polite">
-                  <span className="translation-spinner" aria-hidden="true" />
+                <div
+                  role="status"
+                  aria-live="polite"
+                  style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}
+                >
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 20 20"
+                    aria-hidden="true"
+                    style={{ animation: "popup-spin 0.8s linear infinite" }}
+                  >
+                    <path
+                      d="M16.5 10a6.5 6.5 0 1 1-2.1-4.8"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M16.5 4.5v4h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
                   <span>A traduzir...</span>
                 </div>
               ) : popupState.statusText ? (
-                <span className="translation-error">{popupState.statusText}</span>
+                <span>{popupState.statusText}</span>
               ) : (
                 renderBoldText(popupTranslationText)
               )}

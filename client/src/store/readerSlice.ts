@@ -30,6 +30,7 @@ const mapEntryToResponse = (entry: translationEntry): translationResponse => {
     tense: entry.tense,
     infinitive: entry.infinitive,
     isIrregular: entry.isIrregular,
+    isPending: false,
     usageExamples: entry.usageExamples,
     verbForms: entry.verbForms
   };

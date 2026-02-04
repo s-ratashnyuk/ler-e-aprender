@@ -5,6 +5,7 @@ export type translationResponse = {
   tense: string;
   infinitive: string;
   isIrregular: boolean;
+  isPending: boolean;
   usageExamples: usageExample[];
   verbForms: verbFormRow[];
 };
