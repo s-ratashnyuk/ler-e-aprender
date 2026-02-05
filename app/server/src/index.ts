@@ -38,13 +38,36 @@ const inflightTranslations = new Map<string, Promise<void>>();
 const SESSION_COOKIE = "reader-session";
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 const SESSION_TTL_SECONDS = Math.floor(SESSION_TTL_MS / 1000);
-const SHOULD_SECURE_COOKIE = process.env.NODE_ENV === "production";
+const isSecureRequest = (context: Parameters<typeof setCookie>[0]): boolean => {
+  const forwardedProto = context.req.header("x-forwarded-proto");
+  if (forwardedProto) {
+    return forwardedProto.split(",")[0].trim().toLowerCase() === "https";
+  }
+
+  try {
+    return new URL(context.req.url).protocol === "https:";
+  } catch {
+    return false;
+  }
+};
+
+const shouldSecureCookie = (context: Parameters<typeof setCookie>[0]): boolean => {
+  if (typeof process.env.COOKIE_SECURE === "string") {
+    return process.env.COOKIE_SECURE.toLowerCase() === "true";
+  }
+
+  if (process.env.NODE_ENV !== "production") {
+    return false;
+  }
+
+  return isSecureRequest(context);
+};
 
 const setSessionCookie = (context: Parameters<typeof setCookie>[0], sessionId: string): void => {
   setCookie(context, SESSION_COOKIE, sessionId, {
     httpOnly: true,
     sameSite: "Lax",
-    secure: SHOULD_SECURE_COOKIE,
+    secure: shouldSecureCookie(context),
     path: "/",
     maxAge: SESSION_TTL_SECONDS
   });
