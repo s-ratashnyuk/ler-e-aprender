@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { serve } from "@hono/node-server";
 import OpenAI from "openai";
 import { createWordAndSentenceTranslation } from "./openai/CreateWordAndSentenceTranslation";
@@ -34,6 +35,43 @@ const parseAuthPayload = (value: unknown): authPayload | null => {
 const openAiKey = requireEnv("OPENAI_API_KEY");
 const openAiClient = new OpenAI({ apiKey: openAiKey });
 const inflightTranslations = new Map<string, Promise<void>>();
+const SESSION_COOKIE = "reader-session";
+const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
+const SESSION_TTL_SECONDS = Math.floor(SESSION_TTL_MS / 1000);
+const SHOULD_SECURE_COOKIE = process.env.NODE_ENV === "production";
+
+const setSessionCookie = (context: Parameters<typeof setCookie>[0], sessionId: string): void => {
+  setCookie(context, SESSION_COOKIE, sessionId, {
+    httpOnly: true,
+    sameSite: "Lax",
+    secure: SHOULD_SECURE_COOKIE,
+    path: "/",
+    maxAge: SESSION_TTL_SECONDS
+  });
+};
+
+const clearSessionCookie = (context: Parameters<typeof deleteCookie>[0]): void => {
+  deleteCookie(context, SESSION_COOKIE, { path: "/" });
+};
+
+const refreshSessionFromRequest = (
+  context: Parameters<typeof getCookie>[0]
+): { id: number; email: string } | null => {
+  const sessionId = getCookie(context, SESSION_COOKIE);
+  if (!sessionId) {
+    return null;
+  }
+
+  const authDb = getAuthDatabase();
+  const user = authDb.refreshSession(sessionId, SESSION_TTL_MS);
+  if (!user) {
+    clearSessionCookie(context);
+    return null;
+  }
+
+  setSessionCookie(context, sessionId);
+  return user;
+};
 
 const queueTranslation = (key: string, task: () => Promise<void>): void => {
   if (inflightTranslations.has(key)) {
@@ -58,7 +96,8 @@ const app = new Hono();
 app.use(
   "*",
   cors({
-    origin: "http://localhost:5173"
+    origin: "http://localhost:5173",
+    credentials: true
   })
 );
 
@@ -77,6 +116,8 @@ app.post("/api/auth/signup", async (context): Promise<Response> => {
   try {
     const authDb = getAuthDatabase();
     const user = authDb.createUser(payload.email, payload.passwordHash);
+    const sessionId = authDb.createSession(user.id, SESSION_TTL_MS);
+    setSessionCookie(context, sessionId);
     return context.json({ UserId: user.id, Email: user.email });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Signup failed.";
@@ -101,6 +142,8 @@ app.post("/api/auth/login", async (context): Promise<Response> => {
     if (!user) {
       return context.json({ Error: "Invalid email or password." }, 401);
     }
+    const sessionId = authDb.createSession(user.id, SESSION_TTL_MS);
+    setSessionCookie(context, sessionId);
     return context.json({ UserId: user.id, Email: user.email });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Login failed.";
@@ -108,7 +151,21 @@ app.post("/api/auth/login", async (context): Promise<Response> => {
   }
 });
 
+app.get("/api/auth/session", (context): Response => {
+  const user = refreshSessionFromRequest(context);
+  if (!user) {
+    return context.json({ Error: "Unauthorized." }, 401);
+  }
+
+  return context.json({ UserId: user.id, Email: user.email });
+});
+
 app.post("/api/translate", async (context): Promise<Response> => {
+  const user = refreshSessionFromRequest(context);
+  if (!user) {
+    return context.json({ Error: "Unauthorized." }, 401);
+  }
+
   const body = await context.req.json();
   const translationRequest = parseTranslationRequest(body);
 

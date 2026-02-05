@@ -5,7 +5,7 @@ import { AuthShell } from "../components/AuthShell";
 import { AuthBadge } from "../components/AuthBadge";
 import { hashPassword } from "../utils/hashPassword";
 import { login } from "../api/authClient";
-import { writeAuthSession } from "../utils/session";
+import { primeAuthSession } from "../utils/session";
 
 export const LoginFormScreen = (): JSX.Element => {
   const navigate = useNavigate();
@@ -22,7 +22,7 @@ export const LoginFormScreen = (): JSX.Element => {
     try {
       const passwordHash = await hashPassword(password);
       const session = await login({ email, passwordHash });
-      writeAuthSession(session);
+      primeAuthSession(session);
       setPassword("");
       navigate("/reader", { replace: true });
     } catch (submitError) {

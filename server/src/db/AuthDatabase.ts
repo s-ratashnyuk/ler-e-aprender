@@ -17,6 +17,13 @@ type authUserRecord = {
   passwordSalt: string;
 };
 
+type authSessionRecord = {
+  sessionId: string;
+  userId: number;
+  email: string;
+  expiresAt: number;
+};
+
 const resolveDefaultAuthDbPath = (): string => {
   const cwd = process.cwd();
   const baseDir = path.basename(cwd) === "server" ? cwd : path.resolve(cwd, "server");
@@ -60,6 +67,10 @@ export class AuthDatabase {
   private db: Database.Database;
   private insertUserStmt: Database.Statement;
   private findUserByEmailStmt: Database.Statement;
+  private insertSessionStmt: Database.Statement;
+  private findSessionStmt: Database.Statement;
+  private touchSessionStmt: Database.Statement;
+  private deleteSessionStmt: Database.Statement;
 
   constructor(dbPath: string) {
     this.db = new Database(dbPath);
@@ -81,6 +92,41 @@ export class AuthDatabase {
         LIMIT 1
       `
     );
+
+    this.insertSessionStmt = this.db.prepare(
+      `
+        INSERT INTO sessions (id, user_id, created_at, last_seen_at, expires_at)
+        VALUES (?, ?, ?, ?, ?)
+      `
+    );
+
+    this.findSessionStmt = this.db.prepare(
+      `
+        SELECT sessions.id as sessionId,
+               sessions.user_id as userId,
+               sessions.expires_at as expiresAt,
+               users.email as email
+        FROM sessions
+        JOIN users ON users.id = sessions.user_id
+        WHERE sessions.id = ?
+        LIMIT 1
+      `
+    );
+
+    this.touchSessionStmt = this.db.prepare(
+      `
+        UPDATE sessions
+        SET expires_at = ?, last_seen_at = ?
+        WHERE id = ?
+      `
+    );
+
+    this.deleteSessionStmt = this.db.prepare(
+      `
+        DELETE FROM sessions
+        WHERE id = ?
+      `
+    );
   }
 
   private ensureSchema(): void {
@@ -93,6 +139,18 @@ export class AuthDatabase {
           password_salt TEXT NOT NULL,
           created_at INTEGER NOT NULL
         );
+
+        CREATE TABLE IF NOT EXISTS sessions (
+          id TEXT PRIMARY KEY,
+          user_id INTEGER NOT NULL,
+          created_at INTEGER NOT NULL,
+          last_seen_at INTEGER NOT NULL,
+          expires_at INTEGER NOT NULL,
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS sessions_user_id_idx ON sessions(user_id);
+        CREATE INDEX IF NOT EXISTS sessions_expires_at_idx ON sessions(expires_at);
       `
     );
   }
@@ -126,5 +184,37 @@ export class AuthDatabase {
     }
 
     return { id: row.id, email: row.email };
+  }
+
+  createSession(userId: number, ttlMs: number): string {
+    const sessionId = crypto.randomBytes(32).toString("hex");
+    const now = Date.now();
+    const expiresAt = now + ttlMs;
+    this.insertSessionStmt.run(sessionId, userId, now, now, expiresAt);
+    return sessionId;
+  }
+
+  refreshSession(sessionId: string, ttlMs: number): authUser | null {
+    const row = this.findSessionStmt.get(sessionId) as authSessionRecord | undefined;
+    if (!row) {
+      return null;
+    }
+
+    const now = Date.now();
+    if (row.expiresAt <= now) {
+      this.deleteSessionStmt.run(sessionId);
+      return null;
+    }
+
+    const nextExpiresAt = now + ttlMs;
+    this.touchSessionStmt.run(nextExpiresAt, now, sessionId);
+    return {
+      id: row.userId,
+      email: row.email
+    };
+  }
+
+  deleteSession(sessionId: string): void {
+    this.deleteSessionStmt.run(sessionId);
   }
 }

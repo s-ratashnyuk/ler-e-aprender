@@ -8,6 +8,7 @@ const request = async (path: string, payload: authApiRequest): Promise<authSessi
     headers: {
       "Content-Type": "application/json"
     },
+    credentials: "include",
     body: JSON.stringify(payload)
   });
 

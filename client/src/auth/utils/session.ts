@@ -1,41 +1,68 @@
+import type { authApiResponse } from "../../types/authApiResponse";
 import type { authSession } from "../../types/authSession";
 
-const STORAGE_KEY = "reader-auth-session";
+let cachedSession: authSession | null | undefined;
+let inflightRequest: Promise<authSession | null> | null = null;
 
-export const readAuthSession = (): authSession | null => {
-  if (typeof window === "undefined") {
+const parseSessionResponse = (value: unknown): authSession | null => {
+  if (!value || typeof value !== "object") {
     return null;
   }
 
-  const raw = window.localStorage.getItem(STORAGE_KEY);
-  if (!raw) {
+  const record = value as authApiResponse;
+  if (typeof record.UserId !== "number" || typeof record.Email !== "string") {
     return null;
   }
 
-  try {
-    const parsed = JSON.parse(raw) as authSession;
-    if (typeof parsed?.id === "number" && typeof parsed?.email === "string") {
-      return parsed;
-    }
-  } catch {
-    // ignore invalid data
-  }
-
-  return null;
+  return { id: record.UserId, email: record.Email };
 };
 
-export const writeAuthSession = (session: authSession): void => {
+export const refreshAuthSession = async (): Promise<authSession | null> => {
   if (typeof window === "undefined") {
-    return;
+    return null;
   }
 
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+  if (inflightRequest) {
+    return inflightRequest;
+  }
+
+  inflightRequest = (async (): Promise<authSession | null> => {
+    try {
+      const response = await fetch("/api/auth/session", {
+        method: "GET",
+        credentials: "include"
+      });
+
+      if (!response.ok) {
+        cachedSession = null;
+        return null;
+      }
+
+      const data = (await response.json().catch(() => null)) as unknown;
+      const parsed = parseSessionResponse(data);
+      cachedSession = parsed;
+      return parsed;
+    } catch {
+      cachedSession = null;
+      return null;
+    }
+  })();
+
+  try {
+    return await inflightRequest;
+  } finally {
+    inflightRequest = null;
+  }
+};
+
+export const primeAuthSession = (session: authSession | null): void => {
+  cachedSession = session;
+};
+
+export const getCachedAuthSession = (): authSession | null | undefined => {
+  return cachedSession;
 };
 
 export const clearAuthSession = (): void => {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  window.localStorage.removeItem(STORAGE_KEY);
+  cachedSession = null;
 };

@@ -5,7 +5,7 @@ import { AuthShell } from "../components/AuthShell";
 import { AuthBadge } from "../components/AuthBadge";
 import { hashPassword } from "../utils/hashPassword";
 import { signup } from "../api/authClient";
-import { writeAuthSession } from "../utils/session";
+import { primeAuthSession } from "../utils/session";
 
 export const SignupFormScreen = (): JSX.Element => {
   const navigate = useNavigate();
@@ -29,7 +29,7 @@ export const SignupFormScreen = (): JSX.Element => {
     try {
       const passwordHash = await hashPassword(password);
       const session = await signup({ email, passwordHash });
-      writeAuthSession(session);
+      primeAuthSession(session);
       setPassword("");
       setConfirmPassword("");
       navigate("/reader", { replace: true });

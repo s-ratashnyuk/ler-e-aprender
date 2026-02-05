@@ -49,6 +49,7 @@ export const translateWord = async (payload: translationRequest): Promise<transl
     headers: {
       "Content-Type": "application/json"
     },
+    credentials: "include",
     body: JSON.stringify(mapRequestToApi(payload))
   });
 
