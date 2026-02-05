@@ -1,9 +1,9 @@
 import OpenAI from "openai";
-import type { translationRequest } from "../contracts/TranslationRequest";
-import type { translationResponse } from "../contracts/TranslationResponse";
-import { buildSystemInstructions } from "./BuildSystemInstructions";
-import { buildUserPrompt } from "./BuildUserPrompt";
-import { parseTranslationResponse } from "./ParseTranslationResponse";
+import type { translationRequest } from "../contracts/TranslationRequest.js";
+import type { translationResponse } from "../contracts/TranslationResponse.js";
+import { buildSystemInstructions } from "./BuildSystemInstructions.js";
+import { buildUserPrompt } from "./BuildUserPrompt.js";
+import { parseTranslationResponse } from "./ParseTranslationResponse.js";
 
 const translationResponseSchema: Record<string, unknown> = {
   type: "object",

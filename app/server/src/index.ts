@@ -4,12 +4,12 @@ import { cors } from "hono/cors";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { serve } from "@hono/node-server";
 import OpenAI from "openai";
-import { createWordAndSentenceTranslation } from "./openai/CreateWordAndSentenceTranslation";
-import { parseTranslationRequest } from "./utils/ParseTranslationRequest";
-import { requireEnv } from "./utils/RequireEnv";
-import { getBookDatabase, hashContext } from "./db/BookDatabase";
-import { buildWordCard } from "./utils/BuildWordCard";
-import { getAuthDatabase } from "./db/AuthDatabase";
+import { createWordAndSentenceTranslation } from "./openai/CreateWordAndSentenceTranslation.js";
+import { parseTranslationRequest } from "./utils/ParseTranslationRequest.js";
+import { requireEnv } from "./utils/RequireEnv.js";
+import { getBookDatabase, hashContext } from "./db/BookDatabase.js";
+import { buildWordCard } from "./utils/BuildWordCard.js";
+import { getAuthDatabase } from "./db/AuthDatabase.js";
 
 type authPayload = {
   email: string;

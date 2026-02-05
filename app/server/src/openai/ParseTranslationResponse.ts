@@ -1,5 +1,5 @@
-import type { translationResponse, usageExample, verbFormRow } from "../contracts/TranslationResponse";
-import { extractFirstJsonObject } from "../utils/ExtractFirstJsonObject";
+import type { translationResponse, usageExample, verbFormRow } from "../contracts/TranslationResponse.js";
+import { extractFirstJsonObject } from "../utils/ExtractFirstJsonObject.js";
 
 export const parseTranslationResponse = (outputText: string): translationResponse => {
   const jsonText = extractFirstJsonObject(outputText);

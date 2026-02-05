@@ -1,4 +1,4 @@
-import type { tokenRecord, verbFormRow } from "../db/BookDatabase";
+import type { tokenRecord, verbFormRow } from "../db/BookDatabase.js";
 
 export type wordCard = {
   partOfSpeech: string;

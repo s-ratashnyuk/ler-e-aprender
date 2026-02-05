@@ -1,4 +1,4 @@
-import type { usageExample } from "../contracts/TranslationResponse";
+import type { usageExample } from "../contracts/TranslationResponse.js";
 
 const escapeRegExp = (value: string): string => {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

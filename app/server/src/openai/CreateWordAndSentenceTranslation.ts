@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { extractFirstJsonObject } from "../utils/ExtractFirstJsonObject";
+import { extractFirstJsonObject } from "../utils/ExtractFirstJsonObject.js";
 
 export type wordAndSentenceTranslation = {
   Translation: string;

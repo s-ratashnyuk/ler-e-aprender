@@ -1,4 +1,4 @@
-import type { translationRequest } from "../contracts/TranslationRequest";
+import type { translationRequest } from "../contracts/TranslationRequest.js";
 
 export const buildUserPrompt = (request: translationRequest): string => {
   return [
