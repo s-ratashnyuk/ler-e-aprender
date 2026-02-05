@@ -8,7 +8,7 @@ importers:
 
   .: {}
 
-  client:
+  app/client:
     dependencies:
       '@reduxjs/toolkit':
         specifier: ^2.2.7
@@ -42,7 +42,7 @@ importers:
         specifier: ^5.4.0
         version: 5.4.21(@types/node@20.19.30)
 
-  server:
+  app/server:
     dependencies:
       '@hono/node-server':
         specifier: ^1.12.0

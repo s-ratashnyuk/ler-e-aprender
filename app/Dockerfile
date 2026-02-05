@@ -6,18 +6,18 @@ RUN apt-get update \
   && apt-get install -y --no-install-recommends python3 make g++ \
   && rm -rf /var/lib/apt/lists/*
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY client/package.json client/
 COPY server/package.json server/
 
 RUN corepack enable \
-  && pnpm install --frozen-lockfile
+  && pnpm --dir client install \
+  && pnpm --dir server install
 
 COPY client client
 COPY server server
 
-RUN pnpm run build:client \
-  && pnpm run build:server
+RUN pnpm --dir client build \
+  && pnpm --dir server build
 
 FROM node:20-bookworm-slim AS runtime
 WORKDIR /app
@@ -32,7 +32,6 @@ RUN apt-get update \
 RUN rm -f /etc/nginx/conf.d/default.conf \
   && mkdir -p /var/www/app /data
 
-COPY --from=build /app/node_modules /app/node_modules
 COPY --from=build /app/server/node_modules /app/server/node_modules
 COPY --from=build /app/server/dist /app/server/dist
 COPY --from=build /app/client/dist /var/www/app

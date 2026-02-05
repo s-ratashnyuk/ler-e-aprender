@@ -1,6 +1,6 @@
 # Book DB Schema
 
-The server uses one SQLite database file per book. Default location: `server/data/<bookId>.sqlite`.
+The server uses one SQLite database file per book. Default location: `db/<bookId>.sqlite`.
 
 ## Tables
 
@@ -41,7 +41,7 @@ The server uses one SQLite database file per book. Default location: `server/dat
 1. Build verb forms (requires `verbecc`):
 
 ```bash
-python3 server/scripts/buildVerbForms.py \
+python3 scripts/buildVerbForms.py \
   --tagged-file storyText-tagged.json \
   --output /tmp/verb_forms.json
 ```
@@ -49,18 +49,18 @@ python3 server/scripts/buildVerbForms.py \
 2. Ingest tokens + verb forms:
 
 ```bash
-tsx server/scripts/ingestBook.ts \
+tsx scripts/ingestBook.ts \
   --book-id book-1 \
   --tagged-file storyText-tagged.json \
-  --text-file client/src/content/storyText.ts \
-  --db-path server/data/book-1.sqlite \
+  --text-file app/client/src/content/storyText.ts \
+  --db-path db/book-1.sqlite \
   --verb-forms /tmp/verb_forms.json
 ```
 
 # Auth DB Schema
 
 The server also uses a separate SQLite database for authentication data. Default location:
-`server/data/auth.sqlite`.
+`db/auth.sqlite`.
 
 ## Tables
 

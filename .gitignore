@@ -1,8 +1,8 @@
 node_modules/
-client/dist/
-server/dist/
-server/.env
-server/data/
+app/client/dist/
+app/server/dist/
+app/server/.env
+db/
 venv
 __pycache__
 .log

@@ -178,14 +178,32 @@ const insertMeta = (db: Database.Database, bookId: string, textHash: string): vo
   stmt.run("ingested_at", new Date().toISOString());
 };
 
+const resolveRepoRoot = (): string => {
+  const cwd = process.cwd();
+  const base = path.basename(cwd);
+  if (base === "scripts") {
+    return path.resolve(cwd, "..");
+  }
+  if (base === "server") {
+    return path.resolve(cwd, "..", "..");
+  }
+  if (base === "app") {
+    return path.resolve(cwd, "..");
+  }
+  return cwd;
+};
+
 const main = (): void => {
   const args = parseArgs();
   const bookId = args["--book-id"] ?? "Sou-Sophia";
-  const taggedFile = args["--tagged-file"] ?? path.resolve(process.cwd(), "storyText-tagged.json");
-  const textFile = args["--text-file"] ?? path.resolve(process.cwd(), "client/src/content/storyText.ts");
+  const repoRoot = resolveRepoRoot();
+  const taggedFile = args["--tagged-file"] ?? path.resolve(repoRoot, "storyText-tagged.json");
+  const textFile =
+    args["--text-file"] ??
+    path.resolve(repoRoot, "app", "client", "src", "content", "storyText.ts");
   const dbPath =
     args["--db-path"] ??
-    path.resolve(process.cwd(), "server", "data", `${bookId}.sqlite`);
+    path.resolve(repoRoot, "db", `${bookId}.sqlite`);
   const verbFormsFile = args["--verb-forms"];
 
   const storyText = extractStoryText(textFile);

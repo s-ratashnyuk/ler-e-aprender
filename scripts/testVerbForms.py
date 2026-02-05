@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
+ROOT_DIR = SCRIPT_DIR.parent
 sys.path.insert(0, str(SCRIPT_DIR))
 
 try:
@@ -15,7 +16,7 @@ try:
 except Exception as exc:
     raise SystemExit(
         f"Missing dependencies ({exc}). "
-        "Run with the server/scripts/venv python."
+        "Run with the scripts/venv python."
     ) from exc
 
 verbs_module.config.ENABLE_ML_PREDICTION = False
@@ -33,7 +34,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Verify verb_forms against verbecc.")
     parser.add_argument(
         "--db-path",
-        default=str(Path("server/data/book-1.sqlite")),
+        default=str(ROOT_DIR / "db" / "book-1.sqlite"),
         help="Path to the SQLite DB.",
     )
     parser.add_argument(
