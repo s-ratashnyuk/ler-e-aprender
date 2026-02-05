@@ -217,6 +217,7 @@ export const ReaderScreen = (): JSX.Element => {
 
   const isTranslationPending = popupState.isTranslationPending;
   const refreshDisabled = selectedTokenIndex === null || !popupState.word.trim() || isTranslationPending;
+  const progressPercent = Math.min(Math.max(savedProgress, 0), 1) * 100;
 
   const usageExamples =
     isTranslationPending || popupState.statusText ? [] : popupState.response?.usageExamples ?? [];
@@ -258,6 +259,16 @@ export const ReaderScreen = (): JSX.Element => {
 
   return (
     <div className="page">
+      <div
+        className="progress-bar"
+        role="progressbar"
+        aria-label="Progresso de leitura"
+        aria-valuenow={Math.round(progressPercent)}
+        aria-valuemin={0}
+        aria-valuemax={100}
+      >
+        <span className="progress-bar__fill" style={{ width: `${progressPercent}%` }} />
+      </div>
       <div className="browser-shell">
         <div className="reader-card">
           <div
