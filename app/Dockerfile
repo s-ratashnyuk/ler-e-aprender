@@ -32,14 +32,11 @@ RUN apt-get update \
 RUN rm -f /etc/nginx/conf.d/default.conf \
   && mkdir -p /var/www/app /data
 
-COPY --from=build /app/server/package.json /app/server/package.json
 COPY --from=build /app/server/node_modules /app/server/node_modules
 COPY --from=build /app/server/dist /app/server/dist
 COPY --from=build /app/client/dist /var/www/app
 
-RUN corepack enable \
-  && corepack prepare pnpm@9.15.0 --activate \
-  && pnpm --dir /app/server rebuild better-sqlite3
+RUN npm rebuild --prefix /app/server better-sqlite3
 
 RUN cat <<'NGINX_CONF' > /etc/nginx/conf.d/app.conf
 server {
