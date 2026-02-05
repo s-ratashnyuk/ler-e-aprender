@@ -56,3 +56,17 @@ tsx server/scripts/ingestBook.ts \
   --db-path server/data/book-1.sqlite \
   --verb-forms /tmp/verb_forms.json
 ```
+
+# Auth DB Schema
+
+The server also uses a separate SQLite database for authentication data. Default location:
+`server/data/auth.sqlite`.
+
+## Tables
+
+- `users`
+  - `id` (INTEGER, PK)
+  - `email` (TEXT, UNIQUE)
+  - `password_hash` (TEXT) PBKDF2 hash of the client-side SHA-256
+  - `password_salt` (TEXT)
+  - `created_at` (INTEGER epoch ms)

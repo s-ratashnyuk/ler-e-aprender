@@ -8,6 +8,28 @@ import { parseTranslationRequest } from "./utils/ParseTranslationRequest";
 import { requireEnv } from "./utils/RequireEnv";
 import { getBookDatabase, hashContext } from "./db/BookDatabase";
 import { buildWordCard } from "./utils/BuildWordCard";
+import { getAuthDatabase } from "./db/AuthDatabase";
+
+type authPayload = {
+  email: string;
+  passwordHash: string;
+};
+
+const parseAuthPayload = (value: unknown): authPayload | null => {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const record = value as Record<string, unknown>;
+  if (typeof record.email !== "string" || typeof record.passwordHash !== "string") {
+    return null;
+  }
+
+  return {
+    email: record.email,
+    passwordHash: record.passwordHash
+  };
+};
 
 const openAiKey = requireEnv("OPENAI_API_KEY");
 const openAiClient = new OpenAI({ apiKey: openAiKey });
@@ -42,6 +64,48 @@ app.use(
 
 app.get("/health", (context): Response => {
   return context.json({ Status: "ok" });
+});
+
+app.post("/api/auth/signup", async (context): Promise<Response> => {
+  const body = await context.req.json();
+  const payload = parseAuthPayload(body);
+
+  if (!payload) {
+    return context.json({ Error: "Invalid request." }, 400);
+  }
+
+  try {
+    const authDb = getAuthDatabase();
+    const user = authDb.createUser(payload.email, payload.passwordHash);
+    return context.json({ UserId: user.id, Email: user.email });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Signup failed.";
+    if (message.toLowerCase().includes("unique")) {
+      return context.json({ Error: "Email already registered." }, 409);
+    }
+    return context.json({ Error: message }, 500);
+  }
+});
+
+app.post("/api/auth/login", async (context): Promise<Response> => {
+  const body = await context.req.json();
+  const payload = parseAuthPayload(body);
+
+  if (!payload) {
+    return context.json({ Error: "Invalid request." }, 400);
+  }
+
+  try {
+    const authDb = getAuthDatabase();
+    const user = authDb.verifyUser(payload.email, payload.passwordHash);
+    if (!user) {
+      return context.json({ Error: "Invalid email or password." }, 401);
+    }
+    return context.json({ UserId: user.id, Email: user.email });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Login failed.";
+    return context.json({ Error: message }, 500);
+  }
 });
 
 app.post("/api/translate", async (context): Promise<Response> => {
