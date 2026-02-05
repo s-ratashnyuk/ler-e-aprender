@@ -2,7 +2,7 @@ node_modules/
 app/client/dist/
 app/server/dist/
 app/server/.env
-db/
+/db/
 venv
 __pycache__
 .log
