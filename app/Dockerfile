@@ -26,15 +26,20 @@ ENV NODE_ENV=production
 ENV AUTH_DB_DIR=/data
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends nginx ca-certificates bash \
+  && apt-get install -y --no-install-recommends nginx ca-certificates bash python3 make g++ \
   && rm -rf /var/lib/apt/lists/*
 
 RUN rm -f /etc/nginx/conf.d/default.conf \
   && mkdir -p /var/www/app /data
 
+COPY --from=build /app/server/package.json /app/server/package.json
 COPY --from=build /app/server/node_modules /app/server/node_modules
 COPY --from=build /app/server/dist /app/server/dist
 COPY --from=build /app/client/dist /var/www/app
+
+RUN corepack enable \
+  && corepack prepare pnpm@9.15.0 --activate \
+  && pnpm --dir /app/server rebuild better-sqlite3
 
 RUN cat <<'NGINX_CONF' > /etc/nginx/conf.d/app.conf
 server {
