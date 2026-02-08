@@ -119,6 +119,7 @@ export const handleRefreshClick = async ({
         tokenEnd: selectedToken.endIndex,
         contextLeft: context.contextLeft,
         contextRight: context.contextRight,
+        contextSentence: context.sentence,
         translation: resolved.translation,
         usageExamples: resolved.usageExamples,
         wordCard: resolved.wordCard,

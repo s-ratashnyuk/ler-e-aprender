@@ -24,6 +24,8 @@ const loadPersistedState = (): persistedState | undefined => {
     return {
       reader: {
         ...parsed.reader,
+        checkCountsByBook: parsed.reader.checkCountsByBook ?? {},
+        hiddenWordsByBook: parsed.reader.hiddenWordsByBook ?? {},
         positionByBook: parsed.reader.positionByBook ?? {}
       }
     };

@@ -1,18 +1,14 @@
 import "dotenv/config";
-import fs from "node:fs";
+import crypto from "node:crypto";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { serve } from "@hono/node-server";
 import OpenAI from "openai";
+import { OAuth2Client } from "google-auth-library";
 import { parseTranslationRequest } from "./utils/ParseTranslationRequest.js";
-import { closeBookDatabase, getBookDatabase, resolveBookDbPath } from "./db/BookDatabase.js";
-import {
-  closeSentenceTranslationsDatabase,
-  getSentenceTranslationsDatabase,
-  hashSentenceText,
-  resolveSentenceTranslationsDbPath
-} from "./db/SentenceTranslationDatabase.js";
+import { getBookDatabase } from "./db/BookDatabase.js";
+import { getSentenceTranslationsDatabase, hashSentenceText } from "./db/SentenceTranslationDatabase.js";
 import { getBookCatalogDatabase } from "./db/BookCatalogDatabase.js";
 import { getAuthDatabase } from "./db/AuthDatabase.js";
 import {
@@ -24,29 +20,7 @@ import {
 import { buildImageDataUrl } from "./utils/DetectImageMime.js";
 import { buildWordCard } from "./utils/BuildWordCard.js";
 import { boldFirstOccurrence } from "./utils/BuildUsageExamples.js";
-import { ingestBookUpload, parseBookUpload } from "./utils/BookUpload.js";
 import { createDictionaryArticle } from "./openai/CreateDictionaryArticle.js";
-
-type authPayload = {
-  email: string;
-  passwordHash: string;
-};
-
-const parseAuthPayload = (value: unknown): authPayload | null => {
-  if (!value || typeof value !== "object") {
-    return null;
-  }
-
-  const record = value as Record<string, unknown>;
-  if (typeof record.email !== "string" || typeof record.passwordHash !== "string") {
-    return null;
-  }
-
-  return {
-    email: record.email,
-    passwordHash: record.passwordHash
-  };
-};
 
 const SESSION_COOKIE = "reader-session";
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -90,21 +64,55 @@ const clearSessionCookie = (context: Parameters<typeof deleteCookie>[0]): void =
   deleteCookie(context, SESSION_COOKIE, { path: "/" });
 };
 
-const isSafeBookId = (value: string): boolean => {
-  return /^[a-zA-Z0-9_-]+$/.test(value);
+const OAUTH_STATE_COOKIE = "google-oauth-state";
+const OAUTH_STATE_TTL_SECONDS = 10 * 60;
+
+const getGoogleCredentials = (): {
+  clientId: string;
+  clientSecret: string;
+  redirectUrl: string;
+} => {
+  const clientId = process.env.GOOGLE_CLIENT_ID?.trim();
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
+  const redirectUrl = process.env.GOOGLE_REDIRECT_URL?.trim();
+  if (!clientId || !clientSecret || !redirectUrl) {
+    throw new Error(
+      "GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REDIRECT_URL must be configured."
+    );
+  }
+  return { clientId, clientSecret, redirectUrl };
 };
 
-const deleteSqliteFiles = (dbPath: string): string[] => {
-  const targets = [dbPath, `${dbPath}-shm`, `${dbPath}-wal`];
-  const deleted: string[] = [];
-  for (const target of targets) {
-    if (!fs.existsSync(target)) {
-      continue;
-    }
-    fs.unlinkSync(target);
-    deleted.push(target);
-  }
-  return deleted;
+const getGoogleOAuthClient = (): OAuth2Client => {
+  const credentials = getGoogleCredentials();
+  return new OAuth2Client(
+    credentials.clientId,
+    credentials.clientSecret,
+    credentials.redirectUrl
+  );
+};
+
+const setOAuthStateCookie = (context: Parameters<typeof setCookie>[0], value: string): void => {
+  setCookie(context, OAUTH_STATE_COOKIE, value, {
+    httpOnly: true,
+    sameSite: "Lax",
+    secure: shouldSecureCookie(context),
+    path: "/",
+    maxAge: OAUTH_STATE_TTL_SECONDS
+  });
+};
+
+const clearOAuthStateCookie = (context: Parameters<typeof deleteCookie>[0]): void => {
+  deleteCookie(context, OAUTH_STATE_COOKIE, { path: "/" });
+};
+
+const redirectToLoginWithError = (context: Parameters<typeof setCookie>[0], errorCode: string): Response => {
+  const search = new URLSearchParams({ error: errorCode }).toString();
+  return context.redirect(`/login?${search}`);
+};
+
+const isSafeBookId = (value: string): boolean => {
+  return /^[a-zA-Z0-9_-]+$/.test(value);
 };
 
 let openAiClient: OpenAI | null = null;
@@ -310,50 +318,97 @@ app.get("/health", (context): Response => {
   return context.json({ Status: "ok" });
 });
 
-app.post("/api/auth/signup", async (context): Promise<Response> => {
-  const body = await context.req.json();
-  const payload = parseAuthPayload(body);
-
-  if (!payload) {
-    return context.json({ Error: "Invalid request." }, 400);
-  }
-
+app.get("/api/auth/google", (context): Response => {
+  let oauthClient: OAuth2Client;
   try {
-    const authDb = getAuthDatabase();
-    const user = authDb.createUser(payload.email, payload.passwordHash);
-    const sessionId = authDb.createSession(user.id, SESSION_TTL_MS);
-    setSessionCookie(context, sessionId);
-    return context.json({ UserId: user.id, Email: user.email });
+    oauthClient = getGoogleOAuthClient();
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Signup failed.";
-    if (message.toLowerCase().includes("unique")) {
-      return context.json({ Error: "Email already registered." }, 409);
-    }
+    const message =
+      error instanceof Error ? error.message : "Google OAuth is not configured.";
     return context.json({ Error: message }, 500);
   }
+
+  const state = crypto.randomBytes(16).toString("hex");
+  setOAuthStateCookie(context, state);
+
+  const authUrl = oauthClient.generateAuthUrl({
+    scope: ["openid", "email", "profile"],
+    state,
+    prompt: "select_account"
+  });
+
+  return context.redirect(authUrl);
 });
 
-app.post("/api/auth/login", async (context): Promise<Response> => {
-  const body = await context.req.json();
-  const payload = parseAuthPayload(body);
+app.get("/api/oauth", async (context): Promise<Response> => {
+  const oauthError = context.req.query("error");
+  const code = context.req.query("code");
+  const state = context.req.query("state");
+  const storedState = getCookie(context, OAUTH_STATE_COOKIE);
 
-  if (!payload) {
-    return context.json({ Error: "Invalid request." }, 400);
+  clearOAuthStateCookie(context);
+
+  if (oauthError) {
+    return redirectToLoginWithError(
+      context,
+      oauthError === "access_denied" ? "oauth_denied" : "oauth_failed"
+    );
   }
 
+  if (!code || !state || !storedState || storedState !== state) {
+    return redirectToLoginWithError(context, "state_mismatch");
+  }
+
+  let oauthClient: OAuth2Client;
+  let credentials: { clientId: string; clientSecret: string; redirectUrl: string };
   try {
-    const authDb = getAuthDatabase();
-    const user = authDb.verifyUser(payload.email, payload.passwordHash);
-    if (!user) {
-      return context.json({ Error: "Invalid email or password." }, 401);
-    }
-    const sessionId = authDb.createSession(user.id, SESSION_TTL_MS);
-    setSessionCookie(context, sessionId);
-    return context.json({ UserId: user.id, Email: user.email });
+    credentials = getGoogleCredentials();
+    oauthClient = getGoogleOAuthClient();
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Login failed.";
+    const message =
+      error instanceof Error ? error.message : "Google OAuth is not configured.";
     return context.json({ Error: message }, 500);
   }
+
+  const { tokens } = await oauthClient.getToken(code);
+  if (!tokens.id_token) {
+    return redirectToLoginWithError(context, "oauth_failed");
+  }
+
+  const ticket = await oauthClient.verifyIdToken({
+    idToken: tokens.id_token,
+    audience: credentials.clientId
+  });
+  const payload = ticket.getPayload();
+
+  if (!payload?.email) {
+    return redirectToLoginWithError(context, "oauth_failed");
+  }
+
+  if (payload.email_verified === false) {
+    return redirectToLoginWithError(context, "email_unverified");
+  }
+
+  const authDb = getAuthDatabase();
+  let user = authDb.getUserByEmail(payload.email);
+  if (!user) {
+    try {
+      user = authDb.createOAuthUser(payload.email);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      if (message.toLowerCase().includes("unique")) {
+        user = authDb.getUserByEmail(payload.email);
+      }
+    }
+  }
+
+  if (!user) {
+    return redirectToLoginWithError(context, "oauth_failed");
+  }
+
+  const sessionId = authDb.createSession(user.id, SESSION_TTL_MS);
+  setSessionCookie(context, sessionId);
+  return context.redirect("/books");
 });
 
 app.get("/api/auth/session", (context): Response => {
@@ -488,76 +543,6 @@ app.get("/api/books/:id/content", (context): Response => {
     const status = message.toLowerCase().includes("not found") ? 404 : 500;
     const responseMessage = status === 404 ? "Book not found." : "Failed to load book.";
     return context.json({ Error: responseMessage }, status);
-  }
-});
-
-app.delete("/api/books/:id", (context): Response => {
-  const user = refreshSessionFromRequest(context);
-  if (!user) {
-    return context.json({ Error: "Unauthorized." }, 401);
-  }
-
-  const bookId = context.req.param("id");
-  if (!isSafeBookId(bookId)) {
-    return context.json({ Error: "Invalid book id." }, 400);
-  }
-
-  try {
-    closeBookDatabase(bookId);
-    closeSentenceTranslationsDatabase(bookId);
-    const catalogDb = getBookCatalogDatabase();
-    const removedFromCatalog = catalogDb.deleteBook(bookId);
-    const deletedFiles = deleteSqliteFiles(resolveBookDbPath(bookId));
-    const deletedSentenceFiles = deleteSqliteFiles(resolveSentenceTranslationsDbPath(bookId));
-    const deleted = deletedFiles.length > 0 || deletedSentenceFiles.length > 0;
-
-    if (!deleted && !removedFromCatalog) {
-      return context.json({ Error: "Book not found." }, 404);
-    }
-
-    return context.json({
-      Status: "ok",
-      BookId: bookId,
-      Deleted: deleted,
-      RemovedFromCatalog: removedFromCatalog
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to delete book.";
-    return context.json({ Error: message }, 500);
-  }
-});
-
-app.post("/api/books", async (context): Promise<Response> => {
-  const user = refreshSessionFromRequest(context);
-  if (!user) {
-    return context.json({ Error: "Unauthorized." }, 401);
-  }
-
-  let body: unknown;
-  try {
-    body = await context.req.json();
-  } catch {
-    return context.json({ Error: "Invalid JSON payload." }, 400);
-  }
-  const parsed = parseBookUpload(body);
-  if ("error" in parsed) {
-    return context.json({ Error: parsed.error }, 400);
-  }
-
-  try {
-    const result = ingestBookUpload(parsed.payload);
-    return context.json({
-      Status: "ok",
-      BookId: parsed.payload.id,
-      SentenceCount: result.sentenceCount,
-      TokenCount: result.tokenCount,
-      VerbFormCount: result.verbFormCount,
-      SentenceTranslationCount: result.sentenceTranslationCount
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Book upload failed.";
-    const status = message.toLowerCase().includes("already exists") ? 409 : 500;
-    return context.json({ Error: message }, status);
   }
 });
 

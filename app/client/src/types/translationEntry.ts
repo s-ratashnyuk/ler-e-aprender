@@ -7,6 +7,7 @@ export type translationEntry = {
   tokenEnd?: number;
   contextLeft: string;
   contextRight: string;
+  contextSentence?: string;
   translation: translationText;
   usageExamples: usageExample[];
   wordCard?: wordCard;

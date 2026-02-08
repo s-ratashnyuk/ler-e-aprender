@@ -1,4 +1,2 @@
-dict/pt/wiktionary-articles.json filter=lfs diff=lfs merge=lfs -text
-scripts/build-dictionary/kaikki.org-dictionary-Portuguese.jsonl filter=lfs diff=lfs merge=lfs -text
 scripts/build-dictionary/kaikki.org-dictionary-Portuguese.jsonl.zip filter=lfs diff=lfs merge=lfs -text
 dict/pt/wiktionary-articles.json.zip filter=lfs diff=lfs merge=lfs -text

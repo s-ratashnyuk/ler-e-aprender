@@ -17,44 +17,7 @@ import { renderToken as renderTokenImpl } from "./renderToken";
 import { syncScrollPosition as syncScrollPositionImpl } from "./utils/syncScrollPosition";
 import { fetchBookCatalog, fetchBookChunk, fetchBookMeta } from "../../../api/books";
 import { readerSlice } from "../../../store/readerSlice";
-
-const renderBoldText = (value: string): JSX.Element | string => {
-  let normalized = value.replace(/<\/?strong>/gi, (match) =>
-    match.startsWith("</") ? "</b>" : "<b>"
-  );
-  if (!normalized.includes("<b>") && normalized.includes("**")) {
-    const parts = normalized.split("**");
-    normalized = parts
-      .map((part, index) => (index % 2 === 1 ? `<b>${part}</b>` : part))
-      .join("");
-  }
-  if (!normalized.includes("<b>")) {
-    return value;
-  }
-
-  const tagPattern = /<\/?b>/gi;
-  const segments = normalized.split(tagPattern);
-  const tags = normalized.match(tagPattern) ?? [];
-  let isBold = false;
-
-  return (
-    <>
-      {segments.map((segment, index) => {
-        const node = isBold ? (
-          <strong key={`bold-${index}`}>{segment}</strong>
-        ) : (
-          <span key={`text-${index}`}>{segment}</span>
-        );
-
-        if (index < tags.length) {
-          isBold = tags[index].toLowerCase() === "<b>";
-        }
-
-        return node;
-      })}
-    </>
-  );
-};
+import { TranslationPopup } from "../../components/TranslationPopup";
 
 const normalizeWord = (value: string): string => value.trim().toLocaleLowerCase();
 
@@ -169,6 +132,10 @@ export const ReaderScreen = (): JSX.Element => {
     navigate("/books");
   }, [navigate]);
 
+  const handleUnknownWordsClick = useCallback((): void => {
+    navigate("/reader/words");
+  }, [navigate]);
+
   const [selectedTokenIndex, setSelectedTokenIndex] = useState<number | null>(null);
   const [popupState, setPopupState] = useState<popupState>({
     isOpen: false,
@@ -177,8 +144,6 @@ export const ReaderScreen = (): JSX.Element => {
     response: null,
     isTranslationPending: false
   });
-  const [showEnglishTranslation, setShowEnglishTranslation] = useState(false);
-  const [showRussianMeanings, setShowRussianMeanings] = useState(false);
   const popupOpenRef = useRef(false);
   const selectedTokenIndexRef = useRef<number | null>(null);
 
@@ -408,14 +373,6 @@ export const ReaderScreen = (): JSX.Element => {
   }, [popupState.isOpen, selectedTokenIndex]);
 
   useEffect(() => {
-    if (!popupState.isOpen) {
-      return;
-    }
-    setShowEnglishTranslation(false);
-    setShowRussianMeanings(false);
-  }, [popupState.isOpen, popupState.word]);
-
-  useEffect(() => {
     if (!popupOpenRef.current && selectedTokenIndexRef.current === null) {
       return;
     }
@@ -522,24 +479,7 @@ export const ReaderScreen = (): JSX.Element => {
     windowTokens
   ]);
 
-  const popupWordText = popupState.word || popupState.statusText;
-
-  const popupTranslation = popupState.response?.translation ?? { english: "", russian: "" };
-
   const isTranslationPending = popupState.isTranslationPending;
-  const splitMeanings = useCallback((value: string): string[] => {
-    return value
-      .split(";")
-      .map((entry) => entry.trim())
-      .filter((entry) => entry.length > 0);
-  }, []);
-  const englishMeanings = splitMeanings(popupTranslation.english);
-  const russianMeanings = splitMeanings(popupTranslation.russian);
-  const hasMultipleRussianMeanings = russianMeanings.length > 1;
-  const visibleRussianMeanings = showRussianMeanings
-    ? russianMeanings
-    : russianMeanings.slice(0, 1);
-  const visibleEnglishMeanings = showEnglishTranslation ? englishMeanings : [];
   const refreshDisabled = selectedTokenIndex === null || !popupState.word.trim() || isTranslationPending;
   const aiDisabled = refreshDisabled;
   const derivedProgress =
@@ -552,41 +492,6 @@ export const ReaderScreen = (): JSX.Element => {
     (bookStatus === "loading" || chunkStatus === "loading" || (bookDetail && contentLength > 0));
   const isBookEmpty = windowTokens.length === 0 && !isBookLoading;
 
-  const usageExamples =
-    isTranslationPending || popupState.statusText ? [] : popupState.response?.usageExamples ?? [];
-  const verbForms =
-    isTranslationPending || popupState.statusText ? [] : popupState.response?.wordCard?.verbForms ?? [];
-  const wordCard = isTranslationPending || popupState.statusText
-    ? undefined
-    : popupState.response?.wordCard;
-  const sentenceTranslation = wordCard?.sentenceTranslation;
-  const wordCardLine = (() => {
-    if (!wordCard) {
-      return "";
-    }
-
-    const parts: string[] = [];
-    if (wordCard.partOfSpeech) {
-      parts.push(wordCard.partOfSpeech);
-    }
-    if (wordCard.infinitive) {
-      parts.push(`infinitivo: ${wordCard.infinitive}`);
-    }
-    if (wordCard.tense) {
-      parts.push(`tempo: ${wordCard.tense}`);
-    }
-    if (wordCard.gender) {
-      parts.push(`gênero: ${wordCard.gender}`);
-    }
-    if (wordCard.number) {
-      parts.push(`número: ${wordCard.number}`);
-    }
-    if (wordCard.isIrregular) {
-      parts.push("irregular");
-    }
-
-    return parts.join(" · ");
-  })();
 
   const renderToken = useCallback(
     (token: textToken): JSX.Element => {
@@ -635,6 +540,23 @@ export const ReaderScreen = (): JSX.Element => {
                 />
               </svg>
             </button>
+            <button className="wordlist-button" type="button" onClick={handleUnknownWordsClick}>
+              <span className="wordlist-button__icon" aria-hidden="true">
+                <svg viewBox="0 0 20 20">
+                  <path
+                    d="M6 6h9M6 10h9M6 14h9"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                  />
+                  <circle cx="4" cy="6" r="1" fill="currentColor" />
+                  <circle cx="4" cy="10" r="1" fill="currentColor" />
+                  <circle cx="4" cy="14" r="1" fill="currentColor" />
+                </svg>
+              </span>
+              <span className="wordlist-button__label">Palavras</span>
+            </button>
           </div>
           <div
             className="reader-text"
@@ -656,193 +578,13 @@ export const ReaderScreen = (): JSX.Element => {
               windowTokens.map(renderToken)
             )}
           </div>
-          <div
-            className={`popup${popupState.isOpen ? " is-visible" : ""}`}
-            role="dialog"
-            aria-live="polite"
-            aria-busy={isTranslationPending}
-          >
-            <div className="popup-header">
-              <div className="popup-word">{popupWordText}</div>
-              <div className="popup-actions">
-                <button
-                  className={`popup-refresh${isTranslationPending ? " is-loading" : ""}`}
-                  type="button"
-                  onClick={handleRefreshClick}
-                  disabled={refreshDisabled}
-                  aria-label="Atualizar tradução"
-                  title="Atualizar tradução"
-                >
-                  <svg viewBox="0 0 20 20" aria-hidden="true">
-                    <path
-                      d="M16.5 10a6.5 6.5 0 1 1-2.1-4.8"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.6"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M16.5 4.5v4h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.6"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </button>
-                <button
-                  className="popup-ai"
-                  type="button"
-                  onClick={handleAiClick}
-                  disabled={aiDisabled}
-                  aria-label="Atualizar com IA"
-                  title="Atualizar com IA"
-                >
-                  AI
-                </button>
-              </div>
-            </div>
-            <div className="popup-translation">
-              {isTranslationPending ? (
-                <div
-                  role="status"
-                  aria-live="polite"
-                  style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}
-                >
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 20 20"
-                    aria-hidden="true"
-                    style={{ animation: "popup-spin 0.8s linear infinite" }}
-                  >
-                    <path
-                      d="M16.5 10a6.5 6.5 0 1 1-2.1-4.8"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.6"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M16.5 4.5v4h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.6"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  <span>A traduzir...</span>
-                </div>
-              ) : popupState.statusText ? (
-                <span>{popupState.statusText}</span>
-              ) : (
-                <>
-                  {popupTranslation.russian.trim() ? (
-                    <div className="popup-translation-row">
-                      <span className="popup-translation-label">RU</span>
-                      <ul className="popup-translation-list">
-                        {visibleRussianMeanings.map((meaning, index) => (
-                          <li key={`ru-${index}`}>{renderBoldText(meaning)}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : null}
-                  {popupTranslation.english.trim() && showEnglishTranslation ? (
-                    <div className="popup-translation-row popup-translation-row--english">
-                      <span className="popup-translation-label">EN</span>
-                      <ul className="popup-translation-list">
-                        {visibleEnglishMeanings.map((meaning, index) => (
-                          <li key={`en-${index}`}>{renderBoldText(meaning)}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : null}
-                  {popupTranslation.english.trim() || hasMultipleRussianMeanings ? (
-                    <div className="popup-translation-controls">
-                      {hasMultipleRussianMeanings ? (
-                        <button
-                          type="button"
-                          className="popup-translation-toggle"
-                          onClick={() => setShowRussianMeanings((value) => !value)}
-                        >
-                          {showRussianMeanings ? "Ocultar RU" : "Mostrar RU"}
-                        </button>
-                      ) : null}
-                      {popupTranslation.english.trim() ? (
-                        <button
-                          type="button"
-                          className="popup-translation-toggle"
-                          onClick={() => setShowEnglishTranslation((value) => !value)}
-                        >
-                          {showEnglishTranslation ? "Ocultar EN" : "Mostrar EN"}
-                        </button>
-                      ) : null}
-                    </div>
-                  ) : null}
-                  {!popupTranslation.english.trim() && !popupTranslation.russian.trim() ? (
-                    <span>Sem tradução.</span>
-                  ) : null}
-                </>
-              )}
-            </div>
-            {wordCardLine ? (
-              <div className="popup-subline">{wordCardLine}</div>
-            ) : null}
-            {sentenceTranslation ? (
-              <div className="popup-sentence">
-                <div className="popup-sentence-label">Frase</div>
-                <div className="popup-sentence-pt">
-                  {renderBoldText(sentenceTranslation.portuguese)}
-                </div>
-                <div className="popup-sentence-ru">
-                  {renderBoldText(sentenceTranslation.russian)}
-                </div>
-              </div>
-            ) : null}
-            {usageExamples.length > 0 ? (
-              <div className="popup-usage">
-                {usageExamples.map((example, index) => (
-                    <div className="usage-item" key={`${example.portuguese}-${index}`}>
-                      <div className="usage-label">Uso {index + 1}</div>
-                      <div className="usage-pt">{renderBoldText(example.portuguese)}</div>
-                      <div className="usage-translation-row">
-                        <span className="usage-translation-label">RU</span>
-                        <span className="usage-translation-text">
-                          {renderBoldText(example.russian)}
-                        </span>
-                      </div>
-                      <div className="usage-translation-row">
-                        <span className="usage-translation-label">EN</span>
-                        <span className="usage-translation-text">
-                          {renderBoldText(example.english)}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-            {verbForms.length > 0 ? (
-              <div className="popup-forms">
-                <div className="forms-title">Formas verbais</div>
-                <div className="forms-table">
-                  <div className="forms-row forms-head">
-                    <div className="forms-cell tempo">Tempo</div>
-                    <div className="forms-cell">Forma</div>
-                  </div>
-                  {verbForms.map((row, index) => (
-                    <div className="forms-row" key={`${row.Tense}-${index}`}>
-                      <div className="forms-cell tempo">{row.Tense}</div>
-                      <div className="forms-cell">{row.Forms}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-          </div>
+          <TranslationPopup
+            popupState={popupState}
+            onRefresh={handleRefreshClick}
+            onAi={handleAiClick}
+            refreshDisabled={refreshDisabled}
+            aiDisabled={aiDisabled}
+          />
         </div>
       </div>
     </div>

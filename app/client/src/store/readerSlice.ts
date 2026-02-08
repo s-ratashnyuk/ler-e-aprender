@@ -12,6 +12,8 @@ const initialState: readerState = {
   activeBookId: "",
   books: [],
   translationsByBook: {},
+  checkCountsByBook: {},
+  hiddenWordsByBook: {},
   positionByBook: {},
   progressByBook: {}
 };
@@ -53,6 +55,55 @@ export const readerSlice = createSlice({
       existing.push(entry);
       translationsForBook[normalizedWord] = existing;
       state.translationsByBook[bookId] = translationsForBook;
+    },
+    incrementWordCheck: (
+      state,
+      action: PayloadAction<{
+        bookId: string;
+        word: string;
+      }>
+    ): void => {
+      const normalizedWord = normalizeWord(action.payload.word);
+      if (!normalizedWord) {
+        return;
+      }
+
+      const countsForBook = state.checkCountsByBook[action.payload.bookId] ?? {};
+      countsForBook[normalizedWord] = (countsForBook[normalizedWord] ?? 0) + 1;
+      state.checkCountsByBook[action.payload.bookId] = countsForBook;
+    },
+    hideWordFromUnknowns: (
+      state,
+      action: PayloadAction<{
+        bookId: string;
+        word: string;
+      }>
+    ): void => {
+      const normalizedWord = normalizeWord(action.payload.word);
+      if (!normalizedWord) {
+        return;
+      }
+
+      const hiddenForBook = state.hiddenWordsByBook[action.payload.bookId] ?? {};
+      hiddenForBook[normalizedWord] = true;
+      state.hiddenWordsByBook[action.payload.bookId] = hiddenForBook;
+    },
+    showWordFromUnknowns: (
+      state,
+      action: PayloadAction<{
+        bookId: string;
+        word: string;
+      }>
+    ): void => {
+      const normalizedWord = normalizeWord(action.payload.word);
+      if (!normalizedWord) {
+        return;
+      }
+
+      const hiddenForBook = state.hiddenWordsByBook[action.payload.bookId];
+      if (hiddenForBook && normalizedWord in hiddenForBook) {
+        delete hiddenForBook[normalizedWord];
+      }
     },
     upsertTranslation: (state, action: PayloadAction<translationPayload>): void => {
       const { bookId, entry } = action.payload;

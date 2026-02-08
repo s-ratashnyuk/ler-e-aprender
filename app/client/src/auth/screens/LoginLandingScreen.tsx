@@ -27,16 +27,8 @@ export const LoginLandingScreen = (): JSX.Element => {
         <Link className="auth-button auth-button--primary" to="/login">
           Entrar
         </Link>
-        <div className="auth-divider">
-          <span />
-          <p>ou</p>
-          <span />
-        </div>
-        <Link className="auth-button auth-button--secondary" to="/signup">
-          Criar conta
-        </Link>
       </div>
-      <p className="auth-footer">Primeira vez aqui? E rapido e gratuito.</p>
+      <p className="auth-footer">Use sua conta do Google para continuar.</p>
     </AuthShell>
   );
 };

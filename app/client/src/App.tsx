@@ -1,9 +1,9 @@
 import { JSX, useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ReaderScreen } from "./reader/screens/ReaderScreen/ReaderScreen";
+import { UnknownWordsScreen } from "./reader/screens/UnknownWordsScreen/UnknownWordsScreen";
 import { LoginLandingScreen } from "./auth/screens/LoginLandingScreen";
 import { LoginFormScreen } from "./auth/screens/LoginFormScreen";
-import { SignupFormScreen } from "./auth/screens/SignupFormScreen";
 import { getCachedAuthSession, refreshAuthSession } from "./auth/utils/session";
 import { BookSelectionScreen } from "./books/screens/BookSelectionScreen";
 
@@ -56,7 +56,6 @@ export const App = (): JSX.Element => {
       <Routes>
         <Route path="/" element={<LoginLandingScreen />} />
         <Route path="/login" element={<LoginFormScreen />} />
-        <Route path="/signup" element={<SignupFormScreen />} />
         <Route
           path="/books"
           element={
@@ -70,6 +69,14 @@ export const App = (): JSX.Element => {
           element={
             <RequireAuth>
               <ReaderScreen />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/reader/words"
+          element={
+            <RequireAuth>
+              <UnknownWordsScreen />
             </RequireAuth>
           }
         />

@@ -27,3 +27,4 @@ primary_region = 'cdg'
 
 [env]
   DATABASE_PATH = "/data/"
+  GOOGLE_REDIRECT_URL="https://ler-e-aprender.hamsterlsb.pt/api/oauth"

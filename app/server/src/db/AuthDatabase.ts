@@ -160,6 +160,15 @@ export class AuthDatabase {
     return email.trim().toLowerCase();
   }
 
+  getUserByEmail(email: string): authUser | null {
+    const normalizedEmail = this.normalizeEmail(email);
+    const row = this.findUserByEmailStmt.get(normalizedEmail) as authUserRecord | undefined;
+    if (!row) {
+      return null;
+    }
+    return { id: row.id, email: row.email };
+  }
+
   createUser(email: string, clientPasswordHash: string): authUser {
     const normalizedEmail = this.normalizeEmail(email);
     const salt = crypto.randomBytes(16).toString("hex");
@@ -185,6 +194,19 @@ export class AuthDatabase {
     }
 
     return { id: row.id, email: row.email };
+  }
+
+  createOAuthUser(email: string): authUser {
+    const normalizedEmail = this.normalizeEmail(email);
+    const salt = crypto.randomBytes(16).toString("hex");
+    const randomClientHash = crypto.randomBytes(32).toString("hex");
+    const passwordHash = hashClientPassword(randomClientHash, salt);
+
+    const result = this.insertUserStmt.run(normalizedEmail, passwordHash, salt, Date.now());
+    return {
+      id: Number(result.lastInsertRowid),
+      email: normalizedEmail
+    };
   }
 
   createSession(userId: number, ttlMs: number): string {

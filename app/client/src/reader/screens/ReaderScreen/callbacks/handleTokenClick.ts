@@ -69,6 +69,14 @@ export const handleTokenClick = async ({
   requestIdRef.current = requestId;
 
   const normalizedWord = selectedToken.text.trim().toLocaleLowerCase();
+  dispatch(readerSlice.actions.incrementWordCheck({
+    bookId: activeBookId,
+    word: normalizedWord
+  }));
+  dispatch(readerSlice.actions.showWordFromUnknowns({
+    bookId: activeBookId,
+    word: normalizedWord
+  }));
   const context = getSentenceContextAroundToken(rawText, tokens, selectedToken, 10, rawTextOffset);
   const savedTranslations = savedTranslationsByWord[normalizedWord] ?? [];
   const matchingEntry =
@@ -160,6 +168,7 @@ export const handleTokenClick = async ({
         tokenEnd: selectedToken.endIndex,
         contextLeft: context.contextLeft,
         contextRight: context.contextRight,
+        contextSentence: context.sentence,
         translation: resolved.translation,
         usageExamples: resolved.usageExamples,
         wordCard: resolved.wordCard,
