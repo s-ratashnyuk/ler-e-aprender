@@ -9,12 +9,8 @@ const translationResponseSchema: Record<string, unknown> = {
   type: "object",
   additionalProperties: false,
   properties: {
-    Translation: { type: "string" },
-    PartOfSpeech: { type: "string" },
-    Gender: { type: "string" },
-    Tense: { type: "string" },
-    Infinitive: { type: "string" },
-    IsIrregular: { type: "boolean" },
+    TranslationEnglish: { type: "string" },
+    TranslationRussian: { type: "string" },
     UsageExamples: {
       type: "array",
       items: {
@@ -22,33 +18,17 @@ const translationResponseSchema: Record<string, unknown> = {
         additionalProperties: false,
         properties: {
           Portuguese: { type: "string" },
-          Translation: { type: "string" }
+          English: { type: "string" },
+          Russian: { type: "string" }
         },
-        required: ["Portuguese", "Translation"]
-      }
-    },
-    VerbForms: {
-      type: "array",
-      items: {
-        type: "object",
-        additionalProperties: false,
-        properties: {
-          Tense: { type: "string" },
-          Forms: { type: "string" }
-        },
-        required: ["Tense", "Forms"]
+        required: ["Portuguese", "English", "Russian"]
       }
     }
   },
   required: [
-    "Translation",
-    "PartOfSpeech",
-    "Gender",
-    "Tense",
-    "Infinitive",
-    "IsIrregular",
-    "UsageExamples",
-    "VerbForms"
+    "TranslationEnglish",
+    "TranslationRussian",
+    "UsageExamples"
   ]
 };
 

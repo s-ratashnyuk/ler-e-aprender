@@ -32,7 +32,7 @@ export const SignupFormScreen = (): JSX.Element => {
       primeAuthSession(session);
       setPassword("");
       setConfirmPassword("");
-      navigate("/reader", { replace: true });
+      navigate("/books", { replace: true });
     } catch (submitError) {
       const message = submitError instanceof Error ? submitError.message : "Signup failed.";
       setError(message);

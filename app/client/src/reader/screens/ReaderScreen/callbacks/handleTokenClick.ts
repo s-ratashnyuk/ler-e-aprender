@@ -22,19 +22,15 @@ type HandleTokenClickParams = {
   tokenIndex: number;
   tokens: textToken[];
   rawText: string;
+  rawTextOffset: number;
 };
 
 const mapEntryToResponse = (entry: translationEntry): translationResponse => {
   return {
     translation: entry.translation,
-    partOfSpeech: entry.partOfSpeech,
-    gender: entry.gender ?? "",
-    tense: entry.tense,
-    infinitive: entry.infinitive,
-    isIrregular: entry.isIrregular,
     isPending: false,
     usageExamples: entry.usageExamples,
-    verbForms: entry.verbForms
+    wordCard: entry.wordCard
   };
 };
 
@@ -58,7 +54,8 @@ export const handleTokenClick = async ({
   setSelectedTokenIndex,
   tokenIndex,
   tokens,
-  rawText
+  rawText,
+  rawTextOffset
 }: HandleTokenClickParams): Promise<void> => {
   const selectedToken = findNearestWordToken(tokens, tokenIndex);
   if (!selectedToken) {
@@ -72,12 +69,17 @@ export const handleTokenClick = async ({
   requestIdRef.current = requestId;
 
   const normalizedWord = selectedToken.text.trim().toLocaleLowerCase();
-  const context = getSentenceContextAroundToken(rawText, tokens, selectedToken, 10);
+  const context = getSentenceContextAroundToken(rawText, tokens, selectedToken, 10, rawTextOffset);
   const savedTranslations = savedTranslationsByWord[normalizedWord] ?? [];
-  const matchingEntry = savedTranslations.find(
-    (entry) =>
-      entry.contextLeft === context.contextLeft && entry.contextRight === context.contextRight
-  );
+  const matchingEntry =
+    savedTranslations.find(
+      (entry) =>
+        entry.tokenStart === selectedToken.startIndex && entry.tokenEnd === selectedToken.endIndex
+    ) ??
+    savedTranslations.find(
+      (entry) =>
+        entry.contextLeft === context.contextLeft && entry.contextRight === context.contextRight
+    );
 
   if (matchingEntry) {
     setPopupState({
@@ -154,16 +156,13 @@ export const handleTokenClick = async ({
       const entry: translationEntry = {
         id: buildTranslationEntryId(selectedToken.text, context.contextLeft, context.contextRight),
         word: selectedToken.text,
+        tokenStart: selectedToken.startIndex,
+        tokenEnd: selectedToken.endIndex,
         contextLeft: context.contextLeft,
         contextRight: context.contextRight,
         translation: resolved.translation,
-        partOfSpeech: resolved.partOfSpeech,
-        gender: resolved.gender,
-        tense: resolved.tense,
-        infinitive: resolved.infinitive,
-        isIrregular: resolved.isIrregular,
         usageExamples: resolved.usageExamples,
-        verbForms: resolved.verbForms,
+        wordCard: resolved.wordCard,
         timestamp: Date.now()
       };
 

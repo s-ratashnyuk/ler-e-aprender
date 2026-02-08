@@ -1,34 +1,16 @@
-import * as fs from "node:fs";
-import * as path from "node:path";
-import * as crypto from "node:crypto";
-import Database from "better-sqlite3";
+import fs from "node:fs";
+import path from "node:path";
+import { ingestBookUpload, parseBookUpload } from "../app/server/src/utils/BookUpload.js";
 
-type freelingToken = {
-  id: string;
-  begin: string;
-  end: string;
-  form: string;
-  lemma: string;
-  tag?: string;
-  ctag?: string;
-  pos?: string;
-  mood?: string;
-  tense?: string;
-  person?: string;
-  gen?: string;
-  num?: string;
-};
+const usage = `
+Usage:
+  tsx scripts/ingestBook.ts --book-json <path> [--language <code>]
 
-type freelingSentence = {
-  id: string;
-  tokens: freelingToken[];
-};
-
-type verbFormsFileEntry = {
-  lemma: string;
-  isIrregular: boolean;
-  rows: Array<{ Tense: string; Forms: string }>;
-};
+Options:
+  --book-json <path>   Path to prepared book JSON (output of scripts/prepareBook.sh)
+  --language <code>   Override language (defaults to payload or pt-PT)
+  --help              Show this help
+`.trim();
 
 const parseArgs = (): Record<string, string> => {
   const args: Record<string, string> = {};
@@ -48,136 +30,6 @@ const parseArgs = (): Record<string, string> => {
   return args;
 };
 
-const extractStoryText = (filePath: string): string => {
-  const content = fs.readFileSync(filePath, "utf8");
-  const match = content.match(/`([\s\S]*)`/);
-  if (!match) {
-    throw new Error(`Could not extract story text from ${filePath}`);
-  }
-
-  const raw = match[1];
-  return raw.startsWith("\n") ? raw.slice(1) : raw;
-};
-
-const readJsonObjects = (content: string): unknown[] => {
-  const objects: unknown[] = [];
-  let index = 0;
-  while (index < content.length) {
-    while (index < content.length && /\s/.test(content[index])) {
-      index += 1;
-    }
-    if (index >= content.length) {
-      break;
-    }
-
-    if (content[index] !== "{") {
-      throw new Error(`Unexpected character at ${index}: ${content[index]}`);
-    }
-
-    let depth = 0;
-    let inString = false;
-    let escape = false;
-    let endIndex = -1;
-    for (let cursor = index; cursor < content.length; cursor += 1) {
-      const char = content[cursor];
-      if (inString) {
-        if (escape) {
-          escape = false;
-        } else if (char === "\\") {
-          escape = true;
-        } else if (char === "\"") {
-          inString = false;
-        }
-        continue;
-      }
-
-      if (char === "\"") {
-        inString = true;
-      } else if (char === "{") {
-        depth += 1;
-      } else if (char === "}") {
-        depth -= 1;
-        if (depth === 0) {
-          endIndex = cursor + 1;
-          break;
-        }
-      }
-    }
-
-    if (endIndex === -1) {
-      throw new Error("Unterminated JSON object in tagged file.");
-    }
-
-    const jsonText = content.slice(index, endIndex);
-    objects.push(JSON.parse(jsonText));
-    index = endIndex;
-  }
-
-  return objects;
-};
-
-const createSchema = (db: Database.Database): void => {
-  db.exec(
-    `
-    CREATE TABLE IF NOT EXISTS meta (
-      key TEXT PRIMARY KEY,
-      value TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS tokens (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      sentence_id TEXT NOT NULL,
-      token_id TEXT NOT NULL,
-      begin INTEGER NOT NULL,
-      end INTEGER NOT NULL,
-      form TEXT NOT NULL,
-      surface TEXT NOT NULL,
-      lemma TEXT NOT NULL,
-      pos TEXT,
-      tag TEXT,
-      ctag TEXT,
-      mood TEXT,
-      tense TEXT,
-      person TEXT,
-      gen TEXT,
-      num TEXT
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_tokens_span ON tokens (begin, end);
-    CREATE INDEX IF NOT EXISTS idx_tokens_lemma ON tokens (lemma);
-
-    CREATE TABLE IF NOT EXISTS verb_forms (
-      lemma TEXT NOT NULL,
-      tense_label TEXT NOT NULL,
-      forms TEXT NOT NULL,
-      is_irregular INTEGER NOT NULL,
-      PRIMARY KEY (lemma, tense_label)
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_verb_forms_lemma ON verb_forms (lemma);
-
-    CREATE TABLE IF NOT EXISTS translations (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      token_id INTEGER NOT NULL,
-      context_hash TEXT NOT NULL,
-      context_sentence TEXT NOT NULL,
-      target_language TEXT NOT NULL,
-      word_translation TEXT NOT NULL,
-      usage_examples_json TEXT NOT NULL,
-      updated_at INTEGER NOT NULL,
-      UNIQUE (token_id, context_hash, target_language)
-    );
-    `
-  );
-};
-
-const insertMeta = (db: Database.Database, bookId: string, textHash: string): void => {
-  const stmt = db.prepare("INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)");
-  stmt.run("book_id", bookId);
-  stmt.run("text_hash", textHash);
-  stmt.run("ingested_at", new Date().toISOString());
-};
-
 const resolveRepoRoot = (): string => {
   const cwd = process.cwd();
   const base = path.basename(cwd);
@@ -193,125 +45,100 @@ const resolveRepoRoot = (): string => {
   return cwd;
 };
 
+const loadEnvFile = (filePath: string): boolean => {
+  if (!fs.existsSync(filePath)) {
+    return false;
+  }
+
+  const content = fs.readFileSync(filePath, "utf8");
+  for (const line of content.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) {
+      continue;
+    }
+    const normalized = trimmed.startsWith("export ") ? trimmed.slice(7).trim() : trimmed;
+    const equalsIndex = normalized.indexOf("=");
+    if (equalsIndex <= 0) {
+      continue;
+    }
+    const key = normalized.slice(0, equalsIndex).trim();
+    let value = normalized.slice(equalsIndex + 1).trim();
+    if (
+      (value.startsWith("\"") && value.endsWith("\"")) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+    if (process.env[key] === undefined) {
+      process.env[key] = value;
+    }
+  }
+
+  return true;
+};
+
+const normalizeDatabaseEnv = (serverDir: string, hadDatabasePath: boolean, envLoaded: boolean): void => {
+  if (hadDatabasePath || !envLoaded) {
+    return;
+  }
+  const dbPath = process.env.DATABASE_PATH;
+  if (!dbPath || path.isAbsolute(dbPath)) {
+    return;
+  }
+  process.env.DATABASE_PATH = path.resolve(serverDir, dbPath);
+};
+
+const readJsonFile = (filePath: string): unknown => {
+  const content = fs.readFileSync(filePath, "utf8").trim();
+  if (!content) {
+    throw new Error(`Book JSON is empty: ${filePath}`);
+  }
+  return JSON.parse(content);
+};
+
+const resolveInputPath = (value: string): string => {
+  return path.isAbsolute(value) ? value : path.resolve(process.cwd(), value);
+};
+
 const main = (): void => {
   const args = parseArgs();
-  const bookId = args["--book-id"] ?? "Sou-Sophia";
+  if (args["--help"] === "true") {
+    console.log(usage);
+    return;
+  }
+
   const repoRoot = resolveRepoRoot();
-  const taggedFile = args["--tagged-file"] ?? path.resolve(repoRoot, "storyText-tagged.json");
-  const textFile =
-    args["--text-file"] ??
-    path.resolve(repoRoot, "app", "client", "src", "content", "storyText.ts");
-  const dbPath =
-    args["--db-path"] ??
-    path.resolve(repoRoot, "db", `${bookId}.sqlite`);
-  const verbFormsFile = args["--verb-forms"];
+  const serverDir = path.resolve(repoRoot, "app", "server");
+  const envPath = path.resolve(serverDir, ".env");
+  const hadDatabasePath = typeof process.env.DATABASE_PATH === "string";
+  const envLoaded = loadEnvFile(envPath);
+  normalizeDatabaseEnv(serverDir, hadDatabasePath, envLoaded);
 
-  const storyText = extractStoryText(textFile);
-  const textHash = crypto.createHash("sha256").update(storyText, "utf8").digest("hex");
-
-  const taggedContent = fs.readFileSync(taggedFile, "utf8");
-  const objects = readJsonObjects(taggedContent);
-
-  fs.mkdirSync(path.dirname(dbPath), { recursive: true });
-  if (fs.existsSync(dbPath)) {
-    fs.unlinkSync(dbPath);
+  const bookJsonPath = args["--book-json"];
+  if (!bookJsonPath || bookJsonPath === "true") {
+    console.error(usage);
+    process.exit(1);
   }
 
-  const db = new Database(dbPath);
-  createSchema(db);
-  insertMeta(db, bookId, textHash);
+  const resolvedBookJsonPath = resolveInputPath(bookJsonPath);
+  const payload = readJsonFile(resolvedBookJsonPath);
 
-  const insertToken = db.prepare(
-    `
-      INSERT INTO tokens (
-        sentence_id,
-        token_id,
-        begin,
-        end,
-        form,
-        surface,
-        lemma,
-        pos,
-        tag,
-        ctag,
-        mood,
-        tense,
-        person,
-        gen,
-        num
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `
-  );
-
-  const insertTokens = db.transaction((sentences: freelingSentence[]) => {
-    for (const sentence of sentences) {
-      for (const token of sentence.tokens) {
-        const begin = Number.parseInt(token.begin, 10);
-        const end = Number.parseInt(token.end, 10);
-        const surface =
-          Number.isFinite(begin) && Number.isFinite(end) && end > begin
-            ? storyText.slice(begin, end)
-            : token.form.replace(/_/g, " ");
-
-        insertToken.run(
-          sentence.id,
-          token.id,
-          Number.isFinite(begin) ? begin : 0,
-          Number.isFinite(end) ? end : 0,
-          token.form,
-          surface || token.form.replace(/_/g, " "),
-          token.lemma,
-          token.pos ?? "",
-          token.tag ?? "",
-          token.ctag ?? "",
-          token.mood ?? "",
-          token.tense ?? "",
-          token.person ?? "",
-          token.gen ?? "",
-          token.num ?? ""
-        );
-      }
-    }
-  });
-
-  const sentences: freelingSentence[] = [];
-  for (const obj of objects) {
-    const record = obj as { sentences?: freelingSentence[] };
-    if (record.sentences?.length) {
-      sentences.push(...record.sentences);
-    }
+  if (args["--language"] && payload && typeof payload === "object") {
+    (payload as Record<string, unknown>).language = args["--language"];
   }
 
-  insertTokens(sentences);
-
-  if (verbFormsFile) {
-    const verbFormsContent = fs.readFileSync(verbFormsFile, "utf8");
-    const verbForms = JSON.parse(verbFormsContent) as verbFormsFileEntry[];
-    const insertVerbForm = db.prepare(
-      `
-        INSERT INTO verb_forms (lemma, tense_label, forms, is_irregular)
-        VALUES (?, ?, ?, ?)
-      `
-    );
-    const insertVerbForms = db.transaction((entries: verbFormsFileEntry[]) => {
-      for (const entry of entries) {
-        for (const row of entry.rows) {
-          insertVerbForm.run(
-            entry.lemma,
-            row.Tense,
-            row.Forms,
-            entry.isIrregular ? 1 : 0
-          );
-        }
-      }
-    });
-    insertVerbForms(verbForms);
-  } else {
-    console.warn("No verb forms file provided; verb_forms table will be empty.");
+  const parsed = parseBookUpload(payload);
+  if ("error" in parsed) {
+    throw new Error(parsed.error);
   }
 
-  db.close();
-  console.log(`Ingested ${sentences.length} sentences into ${dbPath}`);
+  const result = ingestBookUpload(parsed.payload);
+  console.log(`Ingested ${result.sentenceCount} sentences into ${result.dbPath}`);
+  console.log(`Tokens: ${result.tokenCount}`);
+  console.log(`Verb forms: ${result.verbFormCount}`);
+  if (result.sentenceTranslationDbPath) {
+    console.log(`Stored ${result.sentenceTranslationCount} sentence translations into ${result.sentenceTranslationDbPath}`);
+  }
 };
 
 main();

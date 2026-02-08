@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 import Database from "better-sqlite3";
+import { resolveDatabaseFile } from "./DatabasePath.js";
 
 const AUTH_PBKDF2_ITERATIONS = 120_000;
 
@@ -24,19 +25,11 @@ type authSessionRecord = {
   expiresAt: number;
 };
 
-const resolveDefaultAuthDbPath = (): string => {
-  const cwd = process.cwd();
-  const base = path.basename(cwd);
-  let defaultDbDir: string;
-  if (base === "server") {
-    defaultDbDir = path.resolve(cwd, "..", "..", "db");
-  } else if (base === "app") {
-    defaultDbDir = path.resolve(cwd, "..", "db");
-  } else {
-    defaultDbDir = path.resolve(cwd, "db");
-  }
-  const dbDir = process.env.AUTH_DB_DIR ?? defaultDbDir;
-  return process.env.AUTH_DB_PATH ?? path.resolve(dbDir, "auth.sqlite");
+export const resolveAuthDbPath = (): string => {
+  return resolveDatabaseFile("auth.sqlite", {
+    overridePath: process.env.AUTH_DB_PATH,
+    overrideDir: process.env.AUTH_DB_DIR
+  });
 };
 
 let authDatabase: AuthDatabase | null = null;
@@ -46,7 +39,7 @@ export const getAuthDatabase = (): AuthDatabase => {
     return authDatabase;
   }
 
-  const dbPath = resolveDefaultAuthDbPath();
+  const dbPath = resolveAuthDbPath();
   const dbDir = path.dirname(dbPath);
   if (!fs.existsSync(dbDir)) {
     fs.mkdirSync(dbDir, { recursive: true });
@@ -225,4 +218,16 @@ export class AuthDatabase {
   deleteSession(sessionId: string): void {
     this.deleteSessionStmt.run(sessionId);
   }
+
+  close(): void {
+    this.db.close();
+  }
 }
+
+export const closeAuthDatabase = (): void => {
+  if (!authDatabase) {
+    return;
+  }
+  authDatabase.close();
+  authDatabase = null;
+};

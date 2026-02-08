@@ -1,6 +1,6 @@
 # Book DB Schema
 
-The server uses one SQLite database file per book. Default location: `db/<bookId>.sqlite`.
+The server uses one SQLite database file per book. `DATABASE_PATH` is required to resolve database files, for example: `DATABASE_PATH=<path>/db`.
 
 ## Tables
 
@@ -25,42 +25,60 @@ The server uses one SQLite database file per book. Default location: `db/<bookId
   - `is_irregular` (INTEGER 0/1)
   - Primary key `(lemma, tense_label)`
 
-- `translations`
+## Sentence Translations DB
+
+Sentence translations are stored in a separate SQLite file per book, named
+`<book-id>.sentences.sqlite` in the same database directory.
+
+Tables:
+
+- `sentence_meta`
+  - `key` (TEXT, PK)
+  - `value` (TEXT)
+  - Stores metadata from `sentence-translations.json` plus `book_id`.
+
+- `sentences`
   - `id` (INTEGER, PK)
-  - `token_id` (INTEGER) -> `tokens.id`
-  - `context_hash` (TEXT) sha256 of sentence snippet
-  - `context_sentence` (TEXT)
-  - `target_language` (TEXT)
-  - `word_translation` (TEXT)
-  - `usage_examples_json` (TEXT) JSON array of {Portuguese, Translation}
+  - `sentence_index` (INTEGER)
+  - `raw_start`, `raw_end` (INTEGER) original slice offsets
+  - `start`, `end` (INTEGER) trimmed slice offsets
+  - `text` (TEXT)
+  - `hash` (TEXT) sha1 of sentence text
+  - `translation` (TEXT)
+
+## Wiktionary Articles DB
+
+Dictionary articles are stored in `wiktionary-articles.sqlite` under the database directory.
+
+Tables:
+
+- `wiktionary_articles`
+  - `key` (TEXT, PK) `word-pos`
+  - `word` (TEXT)
+  - `pos` (TEXT)
+  - `translations_json` (TEXT) JSON array of {glosses, examples}
+  - `source` (TEXT) `wiktionary` or `openai`
   - `updated_at` (INTEGER epoch ms)
-  - Unique `(token_id, context_hash, target_language)`
 
 ## Ingestion (example)
 
-1. Build verb forms (requires `verbecc`):
+1. Prepare a book payload (includes tagging + verb forms):
 
 ```bash
-python3 scripts/buildVerbForms.py \
-  --tagged-file storyText-tagged.json \
-  --output /tmp/verb_forms.json
+scripts/prepareBook.sh "Book Title" /path/to/book.txt "Author Name"
 ```
 
-2. Ingest tokens + verb forms:
+2. Ingest the prepared payload (same pipeline as `/api/books`):
 
 ```bash
 tsx scripts/ingestBook.ts \
-  --book-id book-1 \
-  --tagged-file storyText-tagged.json \
-  --text-file app/client/src/content/storyText.ts \
-  --db-path db/book-1.sqlite \
-  --verb-forms /tmp/verb_forms.json
+  --book-json /path/to/prepared.json
 ```
 
 # Auth DB Schema
 
-The server also uses a separate SQLite database for authentication data. Default location:
-`db/auth.sqlite`.
+The server also uses a separate SQLite database for authentication data, resolved under
+`DATABASE_PATH/auth.sqlite`.
 
 ## Tables
 

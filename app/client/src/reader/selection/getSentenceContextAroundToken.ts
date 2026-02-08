@@ -18,12 +18,15 @@ export const getSentenceContextAroundToken = (
   rawText: string,
   tokens: textToken[],
   token: textToken,
-  maxWordsEachSide: number
+  maxWordsEachSide: number,
+  baseOffset = 0
 ): sentenceContext => {
   const textLength = rawText.length;
+  const localTokenStart = Math.max(0, token.startIndex - baseOffset);
+  const localTokenEnd = Math.max(0, token.endIndex - baseOffset);
   let sentenceStart = 0;
 
-  for (let index = token.startIndex - 1; index >= 0; index -= 1) {
+  for (let index = localTokenStart - 1; index >= 0; index -= 1) {
     if (isSentenceBoundary(rawText[index])) {
       sentenceStart = index + 1;
       break;
@@ -35,7 +38,7 @@ export const getSentenceContextAroundToken = (
   }
 
   let sentenceEnd = textLength;
-  for (let index = token.endIndex; index < textLength; index += 1) {
+  for (let index = localTokenEnd; index < textLength; index += 1) {
     if (isSentenceBoundary(rawText[index])) {
       sentenceEnd = index + 1;
       break;
@@ -46,11 +49,14 @@ export const getSentenceContextAroundToken = (
     sentenceEnd += 1;
   }
 
+  const sentenceStartAbs = sentenceStart + baseOffset;
+  const sentenceEndAbs = sentenceEnd + baseOffset;
+
   const sentenceWordTokens = tokens.filter(
     (candidate) =>
       candidate.type === "word" &&
-      candidate.startIndex >= sentenceStart &&
-      candidate.endIndex <= sentenceEnd
+      candidate.startIndex >= sentenceStartAbs &&
+      candidate.endIndex <= sentenceEndAbs
   );
 
   const selectedIndex = sentenceWordTokens.findIndex((candidate) => candidate.index === token.index);
@@ -86,7 +92,9 @@ export const getSentenceContextAroundToken = (
     const endWordIndex = Math.min(sentenceWordTokens.length - 1, selectedIndex + maxWordsEachSide);
     const startToken = sentenceWordTokens[startWordIndex];
     const endToken = sentenceWordTokens[endWordIndex];
-    let snippet = normalizeWhitespace(rawText.slice(startToken.startIndex, endToken.endIndex));
+    const localStart = Math.max(0, startToken.startIndex - baseOffset);
+    const localEnd = Math.max(0, endToken.endIndex - baseOffset);
+    let snippet = normalizeWhitespace(rawText.slice(localStart, localEnd));
     if (startWordIndex > 0) {
       snippet = `... ${snippet}`;
     }

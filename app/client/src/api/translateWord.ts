@@ -2,7 +2,7 @@ import type { translationRequest } from "../types/translationRequest";
 import type { translationResponse } from "../types/translationResponse";
 import type { translationApiRequest } from "../types/translationApiRequest";
 import type { translationApiResponse } from "../types/translationApiResponse";
-import type { usageExample, verbFormRow } from "../types/translationResponse";
+import type { usageExample } from "../types/translationResponse";
 
 const mapRequestToApi = (payload: translationRequest): translationApiRequest => {
   return {
@@ -15,31 +15,26 @@ const mapRequestToApi = (payload: translationRequest): translationApiRequest => 
     ContextSentence: payload.contextSentence,
     SourceLanguage: payload.sourceLanguage,
     TargetLanguage: payload.targetLanguage,
-    ForceRefresh: payload.forceRefresh
+    ForceRefresh: payload.forceRefresh,
+    ForceOpenAI: payload.forceOpenAi
   };
 };
 
 const mapResponseFromApi = (payload: translationApiResponse): translationResponse => {
   const usageExamples: usageExample[] = payload.UsageExamples.map((example) => ({
     portuguese: example.Portuguese,
-    translation: example.Translation
-  }));
-
-  const verbForms: verbFormRow[] = payload.VerbForms.map((row) => ({
-    tense: row.Tense,
-    forms: row.Forms
+    english: example.English,
+    russian: example.Russian
   }));
 
   return {
-    translation: payload.Translation,
-    partOfSpeech: payload.PartOfSpeech,
-    gender: payload.Gender ?? "",
-    tense: payload.Tense,
-    infinitive: payload.Infinitive,
-    isIrregular: payload.IsIrregular,
+    translation: {
+      english: payload.TranslationEnglish,
+      russian: payload.TranslationRussian
+    },
     isPending: payload.IsPending ?? false,
     usageExamples,
-    verbForms
+    wordCard: payload.WordCard
   };
 };
 

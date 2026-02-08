@@ -1,6 +1,6 @@
 import type { textToken } from "../../types/textToken";
 
-export const splitTextToTokens = (rawText: string): textToken[] => {
+export const splitTextToTokens = (rawText: string, startOffset = 0): textToken[] => {
   const wordRegex = /[\p{L}\p{M}0-9]+(?:[’'\-][\p{L}\p{M}0-9]+)*/gu;
   const tokens: textToken[] = [];
   let cursorIndex = 0;
@@ -15,8 +15,8 @@ export const splitTextToTokens = (rawText: string): textToken[] => {
       tokens.push({
         index: tokens.length,
         text: gapText,
-        startIndex: cursorIndex,
-        endIndex: startIndex,
+        startIndex: cursorIndex + startOffset,
+        endIndex: startIndex + startOffset,
         type: "non-word"
       });
     }
@@ -24,8 +24,8 @@ export const splitTextToTokens = (rawText: string): textToken[] => {
     tokens.push({
       index: tokens.length,
       text: wordText,
-      startIndex,
-      endIndex,
+      startIndex: startIndex + startOffset,
+      endIndex: endIndex + startOffset,
       type: "word"
     });
 
@@ -37,8 +37,8 @@ export const splitTextToTokens = (rawText: string): textToken[] => {
     tokens.push({
       index: tokens.length,
       text: tailText,
-      startIndex: cursorIndex,
-      endIndex: rawText.length,
+      startIndex: cursorIndex + startOffset,
+      endIndex: rawText.length + startOffset,
       type: "non-word"
     });
   }

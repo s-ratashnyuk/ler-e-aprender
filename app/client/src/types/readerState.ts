@@ -5,5 +5,6 @@ export type readerState = {
   activeBookId: string;
   books: bookEntry[];
   translationsByBook: Record<string, Record<string, translationEntry[]>>;
+  positionByBook: Record<string, number>;
   progressByBook: Record<string, number>;
 };

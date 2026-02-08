@@ -24,6 +24,8 @@ export const renderToken = ({ isTranslated, onTokenClick, selectedTokenIndex, to
     <span
       key={token.index}
       className={className}
+      data-token-index={token.index}
+      data-token-start={token.startIndex}
       onClick={() => onTokenClick(token.index)}
     >
       {token.text}

@@ -16,6 +16,7 @@ export const parseTranslationRequest = (value: unknown): translationRequest | nu
   const sourceLanguage = recordValue.SourceLanguage;
   const targetLanguage = recordValue.TargetLanguage;
   const forceRefresh = recordValue.ForceRefresh;
+  const forceOpenAi = recordValue.ForceOpenAI;
 
   if (
     typeof bookId !== "string" ||
@@ -27,7 +28,8 @@ export const parseTranslationRequest = (value: unknown): translationRequest | nu
     typeof contextSentence !== "string" ||
     typeof sourceLanguage !== "string" ||
     typeof targetLanguage !== "string" ||
-    (typeof forceRefresh !== "undefined" && typeof forceRefresh !== "boolean")
+    (typeof forceRefresh !== "undefined" && typeof forceRefresh !== "boolean") ||
+    (typeof forceOpenAi !== "undefined" && typeof forceOpenAi !== "boolean")
   ) {
     return null;
   }
@@ -46,6 +48,7 @@ export const parseTranslationRequest = (value: unknown): translationRequest | nu
     ContextSentence: contextSentence,
     SourceLanguage: sourceLanguage,
     TargetLanguage: targetLanguage,
-    ForceRefresh: forceRefresh ?? false
+    ForceRefresh: forceRefresh ?? false,
+    ForceOpenAI: forceOpenAi ?? false
   };
 };

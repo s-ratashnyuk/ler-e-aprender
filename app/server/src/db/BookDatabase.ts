@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 import Database from "better-sqlite3";
+import { resolveDatabaseDir } from "./DatabasePath.js";
 
 export type tokenRecord = {
   id: number;
@@ -27,24 +28,25 @@ export type verbFormRow = {
   Forms: string;
 };
 
-export type cachedTranslation = {
-  wordTranslation: string;
-  usageExamplesJson: string;
-};
-
-const resolveDefaultDbDir = (): string => {
-  const cwd = process.cwd();
-  const base = path.basename(cwd);
-  if (base === "server") {
-    return path.resolve(cwd, "..", "..", "db");
-  }
-  if (base === "app") {
-    return path.resolve(cwd, "..", "db");
-  }
-  return path.resolve(cwd, "db");
+export type bookDetails = {
+  id: string;
+  name: string;
+  author: string;
+  description: string;
+  cover: string;
+  content: string;
+  language: string;
 };
 
 const dbCache = new Map<string, BookDatabase>();
+
+export const resolveBookDbDir = (): string => {
+  return resolveDatabaseDir(process.env.BOOK_DB_DIR);
+};
+
+export const resolveBookDbPath = (bookId: string): string => {
+  return path.resolve(resolveBookDbDir(), `${bookId}.sqlite`);
+};
 
 export const getBookDatabase = (bookId: string): BookDatabase => {
   const existing = dbCache.get(bookId);
@@ -52,10 +54,9 @@ export const getBookDatabase = (bookId: string): BookDatabase => {
     return existing;
   }
 
-  const dbDir = process.env.BOOK_DB_DIR ?? resolveDefaultDbDir();
-  const dbPath = path.resolve(dbDir, `${bookId}.sqlite`);
+  const dbPath = resolveBookDbPath(bookId);
   if (!fs.existsSync(dbPath)) {
-    throw new Error(`Book database not found for ${bookId}. Expected: ${dbPath}`);
+    throw new Error(`Book database not found for ${bookId}.`);
   }
 
   const instance = new BookDatabase(dbPath);
@@ -63,18 +64,36 @@ export const getBookDatabase = (bookId: string): BookDatabase => {
   return instance;
 };
 
+export const closeBookDatabase = (bookId: string): boolean => {
+  const existing = dbCache.get(bookId);
+  if (!existing) {
+    return false;
+  }
+  existing.close();
+  dbCache.delete(bookId);
+  return true;
+};
+
+export const closeAllBookDatabases = (): void => {
+  for (const database of dbCache.values()) {
+    database.close();
+  }
+  dbCache.clear();
+};
+
 export class BookDatabase {
   private db: Database.Database;
   private findTokenBySpanStmt: Database.Statement;
   private findNearestTokenStmt: Database.Statement;
   private findVerbFormsStmt: Database.Statement;
-  private findCachedTranslationStmt: Database.Statement;
-  private upsertCachedTranslationStmt: Database.Statement;
+  private listMetaStmt: Database.Statement;
+  private getMetaValueStmt: Database.Statement;
+  private getContentSliceStmt: Database.Statement;
+  private getContentLengthStmt: Database.Statement;
 
   constructor(dbPath: string) {
     this.db = new Database(dbPath, { readonly: false });
     this.db.pragma("journal_mode = WAL");
-    this.ensureSchema();
 
     this.findTokenBySpanStmt = this.db.prepare(
       `
@@ -135,45 +154,39 @@ export class BookDatabase {
       `
     );
 
-    this.findCachedTranslationStmt = this.db.prepare(
+    this.listMetaStmt = this.db.prepare(
       `
-        SELECT word_translation as wordTranslation,
-               usage_examples_json as usageExamplesJson
-        FROM translations
-        WHERE token_id = ? AND context_hash = ? AND target_language = ?
+        SELECT key, value
+        FROM meta
+      `
+    );
+
+    this.getMetaValueStmt = this.db.prepare(
+      `
+        SELECT value
+        FROM meta
+        WHERE key = ?
         LIMIT 1
       `
     );
 
-    this.upsertCachedTranslationStmt = this.db.prepare(
+    this.getContentSliceStmt = this.db.prepare(
       `
-        INSERT INTO translations (
-          token_id,
-          context_hash,
-          context_sentence,
-          target_language,
-          word_translation,
-          usage_examples_json,
-          updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT(token_id, context_hash, target_language)
-        DO UPDATE SET
-          context_sentence = excluded.context_sentence,
-          word_translation = excluded.word_translation,
-          usage_examples_json = excluded.usage_examples_json,
-          updated_at = excluded.updated_at
+        SELECT substr(value, ?, ?) as slice
+        FROM meta
+        WHERE key = 'content'
+        LIMIT 1
       `
     );
-  }
 
-  private ensureSchema(): void {
-    const columns = this.db.prepare("PRAGMA table_info(translations)").all() as Array<{
-      name: string;
-    }>;
-    const hasUsageExamples = columns.some((column) => column.name === "usage_examples_json");
-    if (!hasUsageExamples) {
-      this.db.exec("ALTER TABLE translations ADD COLUMN usage_examples_json TEXT NOT NULL DEFAULT '[]'");
-    }
+    this.getContentLengthStmt = this.db.prepare(
+      `
+        SELECT length(value) as length
+        FROM meta
+        WHERE key = 'content'
+        LIMIT 1
+      `
+    );
   }
 
   findTokenBySpan(start: number, end: number): tokenRecord | null {
@@ -212,36 +225,44 @@ export class BookDatabase {
     return { rows: normalizedRows, isIrregular };
   }
 
-  getCachedTranslation(
-    tokenId: number,
-    contextHash: string,
-    targetLanguage: string
-  ): cachedTranslation | null {
-    const row = this.findCachedTranslationStmt.get(
-      tokenId,
-      contextHash,
-      targetLanguage
-    ) as cachedTranslation | undefined;
-    return row ?? null;
+  getBookDetails(): bookDetails {
+    const rows = this.listMetaStmt.all() as Array<{ key: string; value: string }>;
+    const meta = new Map<string, string>();
+    rows.forEach((row) => {
+      meta.set(row.key, row.value);
+    });
+
+    return {
+      id: meta.get("book_id") ?? "",
+      name: meta.get("name") ?? "",
+      author: meta.get("author") ?? "",
+      description: meta.get("description") ?? "",
+      cover: meta.get("cover") ?? "",
+      content: meta.get("content") ?? "",
+      language: meta.get("language") ?? "pt-PT"
+    };
   }
 
-  upsertCachedTranslation(
-    tokenId: number,
-    contextHash: string,
-    contextSentence: string,
-    targetLanguage: string,
-    wordTranslation: string,
-    usageExamplesJson: string
-  ): void {
-    this.upsertCachedTranslationStmt.run(
-      tokenId,
-      contextHash,
-      contextSentence,
-      targetLanguage,
-      wordTranslation,
-      usageExamplesJson,
-      Date.now()
-    );
+  getMetaValue(key: string): string | null {
+    const row = this.getMetaValueStmt.get(key) as { value?: string } | undefined;
+    return row?.value ?? null;
+  }
+
+  getContentLength(): number {
+    const row = this.getContentLengthStmt.get() as { length?: number } | undefined;
+    const lengthValue = row?.length ?? 0;
+    return Number.isFinite(lengthValue) ? lengthValue : 0;
+  }
+
+  getContentSlice(offset: number, length: number): string {
+    const safeOffset = Math.max(0, offset);
+    const safeLength = Math.max(0, length);
+    const row = this.getContentSliceStmt.get(safeOffset + 1, safeLength) as { slice?: string } | undefined;
+    return row?.slice ?? "";
+  }
+
+  close(): void {
+    this.db.close();
   }
 }
 

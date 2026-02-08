@@ -3,10 +3,15 @@ import type { tokenRecord, verbFormRow } from "../db/BookDatabase.js";
 export type wordCard = {
   partOfSpeech: string;
   gender: string;
+  number: string;
   tense: string;
   infinitive: string;
   isIrregular: boolean;
   verbForms: verbFormRow[];
+  sentenceTranslation?: {
+    portuguese: string;
+    russian: string;
+  };
 };
 
 const posLabels: Record<string, string> = {
@@ -28,6 +33,11 @@ const genderLabels: Record<string, string> = {
   masculine: "masculino",
   common: "comum",
   neuter: "neutro"
+};
+
+const numberLabels: Record<string, string> = {
+  singular: "singular",
+  plural: "plural"
 };
 
 const buildTenseLabel = (token: tokenRecord): string => {
@@ -97,12 +107,14 @@ export const buildWordCard = (
 ): wordCard => {
   const partOfSpeech = posLabels[token.pos] ?? "";
   const gender = token.gen ? genderLabels[token.gen] ?? token.gen : "";
+  const number = token.num ? numberLabels[token.num] ?? token.num : "";
   const tense = buildTenseLabel(token);
   const infinitive = token.pos === "verb" ? token.lemma : "";
 
   return {
     partOfSpeech,
     gender,
+    number,
     tense,
     infinitive,
     isIrregular,

@@ -5,6 +5,7 @@ import { LoginLandingScreen } from "./auth/screens/LoginLandingScreen";
 import { LoginFormScreen } from "./auth/screens/LoginFormScreen";
 import { SignupFormScreen } from "./auth/screens/SignupFormScreen";
 import { getCachedAuthSession, refreshAuthSession } from "./auth/utils/session";
+import { BookSelectionScreen } from "./books/screens/BookSelectionScreen";
 
 type requireAuthProps = {
   children: JSX.Element;
@@ -56,6 +57,14 @@ export const App = (): JSX.Element => {
         <Route path="/" element={<LoginLandingScreen />} />
         <Route path="/login" element={<LoginFormScreen />} />
         <Route path="/signup" element={<SignupFormScreen />} />
+        <Route
+          path="/books"
+          element={
+            <RequireAuth>
+              <BookSelectionScreen />
+            </RequireAuth>
+          }
+        />
         <Route
           path="/reader"
           element={

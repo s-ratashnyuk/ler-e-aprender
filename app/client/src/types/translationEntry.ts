@@ -1,25 +1,20 @@
+import type { translationText, wordCard } from "./translationResponse";
+
 export type translationEntry = {
   id: string;
   word: string;
+  tokenStart?: number;
+  tokenEnd?: number;
   contextLeft: string;
   contextRight: string;
-  translation: string;
-  partOfSpeech: string;
-  gender: string;
-  tense: string;
-  infinitive: string;
-  isIrregular: boolean;
+  translation: translationText;
   usageExamples: usageExample[];
-  verbForms: verbFormRow[];
+  wordCard?: wordCard;
   timestamp: number;
 };
 
 export type usageExample = {
   portuguese: string;
-  translation: string;
-};
-
-export type verbFormRow = {
-  tense: string;
-  forms: string;
+  english: string;
+  russian: string;
 };

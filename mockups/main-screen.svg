@@ -12,50 +12,60 @@
     </filter>
   </defs>
 
-  <!-- Background -->
   <rect width="360" height="800" fill="url(#bg)"/>
 
-  <!-- Generic browser window -->
-  <rect x="10" y="10" width="340" height="780" rx="18" fill="#E9E3DA"/>
-  <rect x="16" y="16" width="328" height="56" rx="14" fill="#F7F2EC"/>
-  <circle cx="34" cy="34" r="6" fill="#D9D2C7"/>
-  <circle cx="54" cy="34" r="6" fill="#D9D2C7"/>
-  <circle cx="74" cy="34" r="6" fill="#D9D2C7"/>
-  <rect x="96" y="28" width="228" height="20" rx="10" fill="#EAE3DA"/>
-  <rect x="104" y="32" width="120" height="12" rx="6" fill="#CFC7BB"/>
+  <rect x="0" y="0" width="360" height="800" rx="18" fill="#E9E3DA"/>
+  <rect x="8" y="8" width="344" height="784" rx="22" fill="#FFFDFB" filter="url(#shadow)"/>
 
-  <!-- Reading card -->
-  <rect x="16" y="80" width="328" height="690" rx="22" fill="#FFFDFB" filter="url(#shadow)"/>
+  <rect x="28" y="196" width="72" height="26" rx="6" fill="#CFEAE4"/>
 
-  <!-- Tap highlight (behind text, tight to word) -->
-  <rect x="36" y="246" width="124" height="24" rx="6" fill="#CFEAE4"/>
-
-  <!-- Reading text -->
-  <text x="36" y="124" font-family="Noto Serif, Literata, Georgia, serif" font-size="18" fill="#3E3A34">
-    <tspan x="36" dy="0">A cidade acordou cedo, com uma luz</tspan>
-    <tspan x="36" dy="28">suave entrando pelas janelas. O café</tspan>
-    <tspan x="36" dy="28">ainda fumegava quando ela abriu o</tspan>
-    <tspan x="36" dy="28">livro antigo e encontrou uma palavra</tspan>
-    <tspan x="36" dy="28">que não conhecia:</tspan>
-    <tspan x="36" dy="28" fill="#0B5A44" font-weight="600">"significando"</tspan>
-    <tspan x="36" dy="28">Ela tocou a palavra e o significado</tspan>
-    <tspan x="36" dy="28">surgiu instantaneamente.</tspan>
+  <text x="28" y="92" font-family="Literata, Georgia, serif" font-size="20" fill="#3E3A34">
+    <tspan x="28" dy="0">Se eu quisesse encontrar</tspan>
+    <tspan x="28" dy="30">uma </tspan>
+    <tspan fill="#2C92D1" font-weight="600">palavra</tspan>
+    <tspan fill="#3E3A34" font-weight="400"> que</tspan>
+    <tspan x="28" dy="30">resumisse o essencial da vida,</tspan>
+    <tspan x="28" dy="30">talvez escolhesse uma so:</tspan>
+    <tspan x="28" dy="30" fill="#0F6B5C" font-weight="600">poesia</tspan>
+    <tspan fill="#3E3A34" font-weight="400"> que rima com</tspan>
+    <tspan x="28" dy="30">o meu nome. Toque para</tspan>
+    <tspan x="28" dy="30">traduzir.</tspan>
   </text>
 
-  <!-- Translation pop-up -->
   <g filter="url(#shadow)">
-  <rect x="40" y="290" width="280" height="120" rx="18" fill="#FFFFFF"/>
+    <rect x="20" y="300" width="320" height="230" rx="18" fill="#FFFFFF"/>
   </g>
-  <text x="56" y="332" font-family="Noto Sans, Inter, Arial, sans-serif" font-size="14" fill="#7A736B">significando (gerúndio)</text>
-  <g transform="translate(56 340)">
-    <circle cx="9" cy="12" r="7" fill="none" stroke="#E6E0D7" stroke-width="2"/>
-    <path d="M9 5A7 7 0 0 1 15 12" fill="none" stroke="#0F6B5C" stroke-width="2" stroke-linecap="round"/>
-    <text x="24" y="16" font-family="Noto Serif, Literata, Georgia, serif" font-size="18" fill="#2D2924" font-weight="600">A traduzir...</text>
-  </g>
-  <text x="56" y="384" font-family="Noto Sans, Inter, Arial, sans-serif" font-size="13" fill="#5B554E">"Ela tocou a palavra e o significado surgiu..."</text>
 
-  <!-- Footer fade for readability -->
-  <rect x="16" y="672" width="328" height="60" rx="22" fill="#FFFDFB"/>
-  <rect x="36" y="690" width="150" height="10" rx="5" fill="#E6E0D7"/>
-  <rect x="36" y="708" width="90" height="10" rx="5" fill="#EFE9E1"/>
+  <text x="40" y="340" font-family="Work Sans, Arial, sans-serif" font-size="16" fill="#7A736B">poesia (substantivo)</text>
+  <g>
+    <circle cx="304" cy="332" r="16" fill="#FFFFFF" stroke="#EAE3DA"/>
+    <g transform="translate(296 324) scale(0.8)">
+      <path
+        d="M16.5 10a6.5 6.5 0 1 1-2.1-4.8"
+        fill="none"
+        stroke="#7A736B"
+        stroke-width="1.6"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+      <path
+        d="M16.5 4.5v4h-4"
+        fill="none"
+        stroke="#7A736B"
+        stroke-width="1.6"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </g>
+  </g>
+
+  <text x="40" y="374" font-family="Literata, Georgia, serif" font-size="22" font-weight="600" fill="#2D2924">poetry</text>
+  <text x="40" y="396" font-family="Work Sans, Arial, sans-serif" font-size="12" fill="#7A736B">genero: feminino</text>
+
+  <text x="40" y="418" font-family="Work Sans, Arial, sans-serif" font-size="12" fill="#0F6B5C">Uso 1</text>
+  <text x="40" y="438" font-family="Work Sans, Arial, sans-serif" font-size="15" fill="#3E3A34">A poesia sempre esteve presente.</text>
+  <text x="40" y="456" font-family="Work Sans, Arial, sans-serif" font-size="15" fill="#5B554E">Poetry was always present.</text>
+
+  <rect width="360" height="2" fill="#0F6B5C" opacity="0.18"/>
+  <rect width="140" height="2" fill="#0F6B5C"/>
 </svg>

@@ -2,8 +2,9 @@ import OpenAI from "openai";
 import { extractFirstJsonObject } from "../utils/ExtractFirstJsonObject.js";
 
 export type wordAndSentenceTranslation = {
-  Translation: string;
-  UsageExamples: Array<{ Portuguese: string; Translation: string }>;
+  TranslationEnglish: string;
+  TranslationRussian: string;
+  UsageExamples: Array<{ Portuguese: string; English: string; Russian: string }>;
 };
 
 export type wordAndSentenceInput = {
@@ -19,7 +20,8 @@ const responseSchema: Record<string, unknown> = {
   type: "object",
   additionalProperties: false,
   properties: {
-    Translation: { type: "string" },
+    TranslationEnglish: { type: "string" },
+    TranslationRussian: { type: "string" },
     UsageExamples: {
       type: "array",
       items: {
@@ -27,40 +29,40 @@ const responseSchema: Record<string, unknown> = {
         additionalProperties: false,
         properties: {
           Portuguese: { type: "string" },
-          Translation: { type: "string" }
+          English: { type: "string" },
+          Russian: { type: "string" }
         },
-        required: ["Portuguese", "Translation"]
+        required: ["Portuguese", "English", "Russian"]
       }
     }
   },
-  required: ["Translation", "UsageExamples"]
+  required: ["TranslationEnglish", "TranslationRussian", "UsageExamples"]
 };
 
 const buildSystemInstructions = (): string => {
   return [
     "You are a concise translation helper.",
-    "Return JSON only with keys: Translation, UsageExamples.",
-    "Translation: target-language meaning of the word/expression in this sentence (<= 6 words) or \"I don't know\".",
-    "UsageExamples: array of {Portuguese, Translation}.",
+    "Return JSON only with keys: TranslationEnglish, TranslationRussian, UsageExamples.",
+    "TranslationEnglish/TranslationRussian: meaning of the word/expression in this sentence (<= 6 words) or \"I don't know\".",
+    "UsageExamples: array of {Portuguese, English, Russian}.",
     "UsageExamples[0] must be the provided sentence exactly.",
-    "All translated text must be in the target language only (Translation and UsageExamples.Translation); never output English.",
-    "If the target language is Russian, use Cyrillic for all translated text.",
+    "All translated text must be in English or Russian only; never output Portuguese in translations.",
+    "Use Cyrillic for Russian text.",
     "In UsageExamples translations, bold the translated word/expression with <b>...</b>.",
-    "If Translation is \"I don't know\", return an empty array."
+    "If translations are \"I don't know\", return an empty array."
   ].join("\n");
 };
 
 const buildUserPrompt = (input: wordAndSentenceInput): string => {
   return [
     `Source language: ${input.sourceLanguage}`,
-    `Target language: ${input.targetLanguage}`,
     `Word/Expression: ${input.word}`,
     `Lemma: ${input.lemma}`,
     `Part of speech: ${input.partOfSpeech}`,
     `Sentence: ${input.sentence}`,
     "Task: Translate the word/expression in context and provide 5 usage examples.",
     "UsageExamples[0] must use the given sentence exactly.",
-    "All translated text must be in the target language only (Translation and UsageExamples.Translation). Do not use English.",
+    "Provide both English and Russian translations.",
     "In each example translation, bold only the translated word/expression using <b>...</b>.",
     "If the word is part of a fixed expression, bold the full translated expression."
   ].join("\n");
@@ -119,10 +121,15 @@ export const createWordAndSentenceTranslation = async (
 
   const jsonText = extractFirstJsonObject(outputText);
   const parsed = JSON.parse(jsonText) as Record<string, unknown>;
-  const translation = parsed.Translation;
+  const translationEnglish = parsed.TranslationEnglish;
+  const translationRussian = parsed.TranslationRussian;
   const usageExamples = parsed.UsageExamples;
 
-  if (typeof translation !== "string" || !Array.isArray(usageExamples)) {
+  if (
+    typeof translationEnglish !== "string" ||
+    typeof translationRussian !== "string" ||
+    !Array.isArray(usageExamples)
+  ) {
     throw new Error("Invalid word translation response shape.");
   }
 
@@ -132,18 +139,24 @@ export const createWordAndSentenceTranslation = async (
     }
 
     const record = example as Record<string, unknown>;
-    if (typeof record.Portuguese !== "string" || typeof record.Translation !== "string") {
+    if (
+      typeof record.Portuguese !== "string" ||
+      typeof record.English !== "string" ||
+      typeof record.Russian !== "string"
+    ) {
       throw new Error("Invalid usage example entry.");
     }
 
     return {
       Portuguese: record.Portuguese,
-      Translation: record.Translation
+      English: record.English,
+      Russian: record.Russian
     };
   });
 
   return {
-    Translation: translation,
+    TranslationEnglish: translationEnglish,
+    TranslationRussian: translationRussian,
     UsageExamples: normalizedExamples
   };
 };

@@ -17,7 +17,16 @@ const loadPersistedState = (): persistedState | undefined => {
   }
 
   try {
-    return JSON.parse(rawState) as persistedState;
+    const parsed = JSON.parse(rawState) as persistedState;
+    if (!parsed || typeof parsed !== "object" || !parsed.reader) {
+      return undefined;
+    }
+    return {
+      reader: {
+        ...parsed.reader,
+        positionByBook: parsed.reader.positionByBook ?? {}
+      }
+    };
   } catch {
     return undefined;
   }

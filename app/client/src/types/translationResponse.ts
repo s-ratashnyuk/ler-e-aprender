@@ -1,21 +1,31 @@
 export type translationResponse = {
-  translation: string;
-  partOfSpeech: string;
-  gender: string;
-  tense: string;
-  infinitive: string;
-  isIrregular: boolean;
+  translation: translationText;
   isPending: boolean;
   usageExamples: usageExample[];
-  verbForms: verbFormRow[];
+  wordCard?: wordCard;
+};
+
+export type translationText = {
+  english: string;
+  russian: string;
 };
 
 export type usageExample = {
   portuguese: string;
-  translation: string;
+  english: string;
+  russian: string;
 };
 
-export type verbFormRow = {
+export type wordCard = {
+  partOfSpeech: string;
+  gender: string;
+  number: string;
   tense: string;
-  forms: string;
+  infinitive: string;
+  isIrregular: boolean;
+  verbForms: Array<{ Tense: string; Forms: string }>;
+  sentenceTranslation?: {
+    portuguese: string;
+    russian: string;
+  };
 };

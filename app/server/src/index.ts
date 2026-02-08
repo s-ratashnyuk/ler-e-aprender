@@ -1,15 +1,31 @@
 import "dotenv/config";
+import fs from "node:fs";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { serve } from "@hono/node-server";
 import OpenAI from "openai";
-import { createWordAndSentenceTranslation } from "./openai/CreateWordAndSentenceTranslation.js";
 import { parseTranslationRequest } from "./utils/ParseTranslationRequest.js";
-import { requireEnv } from "./utils/RequireEnv.js";
-import { getBookDatabase, hashContext } from "./db/BookDatabase.js";
-import { buildWordCard } from "./utils/BuildWordCard.js";
+import { closeBookDatabase, getBookDatabase, resolveBookDbPath } from "./db/BookDatabase.js";
+import {
+  closeSentenceTranslationsDatabase,
+  getSentenceTranslationsDatabase,
+  hashSentenceText,
+  resolveSentenceTranslationsDbPath
+} from "./db/SentenceTranslationDatabase.js";
+import { getBookCatalogDatabase } from "./db/BookCatalogDatabase.js";
 import { getAuthDatabase } from "./db/AuthDatabase.js";
+import {
+  getWiktionaryArticlesDatabase,
+  resolveWiktionaryArticlesDbPath,
+  type wiktionaryArticle,
+  type wiktionaryTranslation
+} from "./db/WiktionaryArticlesDatabase.js";
+import { buildImageDataUrl } from "./utils/DetectImageMime.js";
+import { buildWordCard } from "./utils/BuildWordCard.js";
+import { boldFirstOccurrence } from "./utils/BuildUsageExamples.js";
+import { ingestBookUpload, parseBookUpload } from "./utils/BookUpload.js";
+import { createDictionaryArticle } from "./openai/CreateDictionaryArticle.js";
 
 type authPayload = {
   email: string;
@@ -32,9 +48,6 @@ const parseAuthPayload = (value: unknown): authPayload | null => {
   };
 };
 
-const openAiKey = requireEnv("OPENAI_API_KEY");
-const openAiClient = new OpenAI({ apiKey: openAiKey });
-const inflightTranslations = new Map<string, Promise<void>>();
 const SESSION_COOKIE = "reader-session";
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 const SESSION_TTL_SECONDS = Math.floor(SESSION_TTL_MS / 1000);
@@ -77,6 +90,193 @@ const clearSessionCookie = (context: Parameters<typeof deleteCookie>[0]): void =
   deleteCookie(context, SESSION_COOKIE, { path: "/" });
 };
 
+const isSafeBookId = (value: string): boolean => {
+  return /^[a-zA-Z0-9_-]+$/.test(value);
+};
+
+const deleteSqliteFiles = (dbPath: string): string[] => {
+  const targets = [dbPath, `${dbPath}-shm`, `${dbPath}-wal`];
+  const deleted: string[] = [];
+  for (const target of targets) {
+    if (!fs.existsSync(target)) {
+      continue;
+    }
+    fs.unlinkSync(target);
+    deleted.push(target);
+  }
+  return deleted;
+};
+
+let openAiClient: OpenAI | null = null;
+
+const getOpenAiClient = (): OpenAI => {
+  if (openAiClient) {
+    return openAiClient;
+  }
+
+  const apiKey = process.env.OPENAI_API_KEY?.trim();
+  if (!apiKey) {
+    throw new Error("OPENAI_API_KEY is not configured.");
+  }
+
+  openAiClient = new OpenAI({ apiKey });
+  return openAiClient;
+};
+
+const normalizeWordValue = (value: string): string => value.trim();
+
+const buildCandidateKeys = (words: string[], positions: string[]): string[] => {
+  const normalizedPositions = positions.map((pos) => pos.trim()).filter(Boolean);
+  if (normalizedPositions.length === 0) {
+    return [];
+  }
+
+  const keys: string[] = [];
+  const seen = new Set<string>();
+  for (const word of words) {
+    const normalized = normalizeWordValue(word);
+    if (!normalized) {
+      continue;
+    }
+    for (const pos of normalizedPositions) {
+      const key = `${normalized}-${pos}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        keys.push(key);
+      }
+    }
+  }
+  return keys;
+};
+
+const buildPosCandidates = (pos: string, wordSurface: string): string[] => {
+  const normalized = pos.trim();
+  if (!normalized) {
+    return [];
+  }
+
+  const mapping: Record<string, string> = {
+    adjective: "adj",
+    adverb: "adv",
+    pronoun: "pron",
+    determiner: "det",
+    adposition: "prep",
+    conjunction: "conj",
+    number: "num",
+    interjection: "intj",
+    date: "num",
+    noun: "noun",
+    verb: "verb"
+  };
+
+  const candidates: string[] = [];
+  const mapped = mapping[normalized] ?? normalized;
+  candidates.push(mapped);
+  if (mapped !== normalized) {
+    candidates.push(normalized);
+  }
+  if (normalized === "determiner") {
+    candidates.push("article");
+  }
+  if (normalized === "noun" && /^[A-ZÀ-ÖØ-Þ]/.test(wordSurface.trim())) {
+    candidates.push("name");
+  }
+
+  return Array.from(new Set(candidates));
+};
+
+const collectGlosses = (
+  translations: wiktionaryTranslation[],
+  key: "english" | "russian",
+  limit = 4
+): string[] => {
+  const values: string[] = [];
+  const seen = new Set<string>();
+
+  for (const entry of translations) {
+    const raw = entry?.glosses?.[key]?.trim() ?? "";
+    if (!raw) {
+      continue;
+    }
+    const normalized = raw.toLocaleLowerCase();
+    if (seen.has(normalized)) {
+      continue;
+    }
+    seen.add(normalized);
+    values.push(raw);
+    if (values.length >= limit) {
+      break;
+    }
+  }
+
+  return values;
+};
+
+const buildTranslationSummary = (article: wiktionaryArticle | null): {
+  english: string;
+  russian: string;
+} => {
+  if (!article) {
+    return { english: "I don't know", russian: "I don't know" };
+  }
+
+  const english = collectGlosses(article.translations, "english").join("; ");
+  const russian = collectGlosses(article.translations, "russian").join("; ");
+
+  if (!english && !russian) {
+    return { english: "I don't know", russian: "I don't know" };
+  }
+
+  return {
+    english,
+    russian
+  };
+};
+
+const buildUsageExamplesFromArticle = (
+  article: wiktionaryArticle | null,
+  wordSurface: string,
+  limit = 5
+): Array<{ Portuguese: string; English: string; Russian: string }> => {
+  if (!article) {
+    return [];
+  }
+
+  const examples: Array<{ Portuguese: string; English: string; Russian: string }> = [];
+  const seen = new Set<string>();
+
+  for (const entry of article.translations) {
+    const entryExamples = Array.isArray(entry.examples) ? entry.examples : [];
+    for (const example of entryExamples) {
+      const text = example.text?.trim() ?? "";
+      const english = example.english?.trim() || example.translation?.trim() || "";
+      const russian = example.russian?.trim() ?? "";
+      if (!text || !english || !russian) {
+        continue;
+      }
+
+      const key = `${text}::${english}::${russian}`;
+      if (seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+
+      const highlighted = wordSurface ? boldFirstOccurrence(text, wordSurface) : text;
+      examples.push({
+        Portuguese: highlighted,
+        English: english,
+        Russian: russian
+      });
+
+      if (examples.length >= limit) {
+        return examples;
+      }
+    }
+  }
+
+  return examples;
+};
+
 const refreshSessionFromRequest = (
   context: Parameters<typeof getCookie>[0]
 ): { id: number; email: string } | null => {
@@ -94,24 +294,6 @@ const refreshSessionFromRequest = (
 
   setSessionCookie(context, sessionId);
   return user;
-};
-
-const queueTranslation = (key: string, task: () => Promise<void>): void => {
-  if (inflightTranslations.has(key)) {
-    return;
-  }
-
-  const promise = (async (): Promise<void> => {
-    try {
-      await task();
-    } catch (error) {
-      console.error("Translation background task failed.", error);
-    } finally {
-      inflightTranslations.delete(key);
-    }
-  })();
-
-  inflightTranslations.set(key, promise);
 };
 
 const app = new Hono();
@@ -183,6 +365,202 @@ app.get("/api/auth/session", (context): Response => {
   return context.json({ UserId: user.id, Email: user.email });
 });
 
+app.get("/api/books", (context): Response => {
+  const user = refreshSessionFromRequest(context);
+  if (!user) {
+    return context.json({ Error: "Unauthorized." }, 401);
+  }
+
+  try {
+    const catalogDb = getBookCatalogDatabase();
+    let entries = catalogDb.listBooks();
+    if (entries.length === 0) {
+      catalogDb.syncFromBookDatabases();
+      entries = catalogDb.listBooks();
+    }
+
+    const books = entries.map((entry) => {
+      const coverImage = buildImageDataUrl(entry.coverBase64, entry.coverMime);
+      return {
+        Id: entry.id,
+        Title: entry.title,
+        Author: entry.author,
+        Description: entry.description,
+        Language: entry.language,
+        CoverImage: coverImage ?? ""
+      };
+    });
+
+    return context.json({ Books: books });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to load books.";
+    return context.json({ Error: message }, 500);
+  }
+});
+
+app.get("/api/books/:id", (context): Response => {
+  const user = refreshSessionFromRequest(context);
+  if (!user) {
+    return context.json({ Error: "Unauthorized." }, 401);
+  }
+
+  const bookId = context.req.param("id");
+  if (!isSafeBookId(bookId)) {
+    return context.json({ Error: "Invalid book id." }, 400);
+  }
+
+  try {
+    const db = getBookDatabase(bookId);
+    const catalog = getBookCatalogDatabase().getBook(bookId);
+    const coverMime = catalog?.coverMime ?? "";
+    const includeContentParam = context.req.query("includeContent");
+    const includeContent = includeContentParam === undefined
+      ? true
+      : includeContentParam === "true" || includeContentParam === "1";
+
+    const contentLength = db.getContentLength();
+    const metaTitle = db.getMetaValue("name") ?? "";
+    const metaAuthor = db.getMetaValue("author") ?? "";
+    const metaDescription = db.getMetaValue("description") ?? "";
+    const metaCover = db.getMetaValue("cover") ?? "";
+    const metaLanguage = db.getMetaValue("language") ?? "";
+    const metaId = db.getMetaValue("book_id") ?? bookId;
+    const textHash = db.getMetaValue("text_hash") ?? "";
+    const coverImage = buildImageDataUrl(metaCover, coverMime);
+    const language = metaLanguage || catalog?.language || "pt-PT";
+    const content = includeContent ? db.getContentSlice(0, contentLength) : undefined;
+
+    return context.json({
+      Id: metaId,
+      Title: metaTitle,
+      Author: metaAuthor,
+      Description: metaDescription,
+      Language: language,
+      CoverImage: coverImage ?? "",
+      Content: content,
+      ContentLength: contentLength,
+      TextHash: textHash
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Book not found.";
+    const status = message.toLowerCase().includes("not found") ? 404 : 500;
+    const responseMessage = status === 404 ? "Book not found." : "Failed to load book.";
+    return context.json({ Error: responseMessage }, status);
+  }
+});
+
+app.get("/api/books/:id/content", (context): Response => {
+  const user = refreshSessionFromRequest(context);
+  if (!user) {
+    return context.json({ Error: "Unauthorized." }, 401);
+  }
+
+  const bookId = context.req.param("id");
+  if (!isSafeBookId(bookId)) {
+    return context.json({ Error: "Invalid book id." }, 400);
+  }
+
+  const offsetParam = context.req.query("offset") ?? "0";
+  const lengthParam = context.req.query("length") ?? "0";
+  const offset = Number.parseInt(offsetParam, 10);
+  const length = Number.parseInt(lengthParam, 10);
+
+  if (!Number.isFinite(offset) || offset < 0 || !Number.isFinite(length) || length <= 0) {
+    return context.json({ Error: "Invalid offset or length." }, 400);
+  }
+
+  try {
+    const db = getBookDatabase(bookId);
+    const totalLength = db.getContentLength();
+    const safeOffset = Math.min(Math.max(offset, 0), totalLength);
+    const safeLength = Math.min(Math.max(length, 0), Math.max(totalLength - safeOffset, 0));
+    const content = safeLength > 0 ? db.getContentSlice(safeOffset, safeLength) : "";
+
+    return context.json({
+      Id: bookId,
+      Offset: safeOffset,
+      Length: content.length,
+      TotalLength: totalLength,
+      Content: content
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Book not found.";
+    const status = message.toLowerCase().includes("not found") ? 404 : 500;
+    const responseMessage = status === 404 ? "Book not found." : "Failed to load book.";
+    return context.json({ Error: responseMessage }, status);
+  }
+});
+
+app.delete("/api/books/:id", (context): Response => {
+  const user = refreshSessionFromRequest(context);
+  if (!user) {
+    return context.json({ Error: "Unauthorized." }, 401);
+  }
+
+  const bookId = context.req.param("id");
+  if (!isSafeBookId(bookId)) {
+    return context.json({ Error: "Invalid book id." }, 400);
+  }
+
+  try {
+    closeBookDatabase(bookId);
+    closeSentenceTranslationsDatabase(bookId);
+    const catalogDb = getBookCatalogDatabase();
+    const removedFromCatalog = catalogDb.deleteBook(bookId);
+    const deletedFiles = deleteSqliteFiles(resolveBookDbPath(bookId));
+    const deletedSentenceFiles = deleteSqliteFiles(resolveSentenceTranslationsDbPath(bookId));
+    const deleted = deletedFiles.length > 0 || deletedSentenceFiles.length > 0;
+
+    if (!deleted && !removedFromCatalog) {
+      return context.json({ Error: "Book not found." }, 404);
+    }
+
+    return context.json({
+      Status: "ok",
+      BookId: bookId,
+      Deleted: deleted,
+      RemovedFromCatalog: removedFromCatalog
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to delete book.";
+    return context.json({ Error: message }, 500);
+  }
+});
+
+app.post("/api/books", async (context): Promise<Response> => {
+  const user = refreshSessionFromRequest(context);
+  if (!user) {
+    return context.json({ Error: "Unauthorized." }, 401);
+  }
+
+  let body: unknown;
+  try {
+    body = await context.req.json();
+  } catch {
+    return context.json({ Error: "Invalid JSON payload." }, 400);
+  }
+  const parsed = parseBookUpload(body);
+  if ("error" in parsed) {
+    return context.json({ Error: parsed.error }, 400);
+  }
+
+  try {
+    const result = ingestBookUpload(parsed.payload);
+    return context.json({
+      Status: "ok",
+      BookId: parsed.payload.id,
+      SentenceCount: result.sentenceCount,
+      TokenCount: result.tokenCount,
+      VerbFormCount: result.verbFormCount,
+      SentenceTranslationCount: result.sentenceTranslationCount
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Book upload failed.";
+    const status = message.toLowerCase().includes("already exists") ? 409 : 500;
+    return context.json({ Error: message }, status);
+  }
+});
+
 app.post("/api/translate", async (context): Promise<Response> => {
   const user = refreshSessionFromRequest(context);
   if (!user) {
@@ -196,6 +574,10 @@ app.post("/api/translate", async (context): Promise<Response> => {
     return context.json({ Error: "Invalid request." }, 400);
   }
 
+  if (!isSafeBookId(translationRequest.BookId)) {
+    return context.json({ Error: "Invalid book id." }, 400);
+  }
+
   try {
     const db = getBookDatabase(translationRequest.BookId);
     const token = db.findTokenBySpan(translationRequest.TokenStart, translationRequest.TokenEnd);
@@ -205,85 +587,116 @@ app.post("/api/translate", async (context): Promise<Response> => {
     }
 
     const wordSurface = token.surface?.trim() || token.form.replace(/_/g, " ") || translationRequest.Word;
-    const { rows: verbForms, isIrregular } = db.getVerbForms(token.lemma);
-    const card = buildWordCard(token, verbForms, isIrregular);
-    const contextHash = hashContext(translationRequest.ContextSentence);
-    const cacheKey = `${token.id}:${contextHash}:${translationRequest.TargetLanguage}`;
+    const normalizedWord = wordSurface.trim();
+    const shouldForceOpenAi = translationRequest.ForceOpenAI === true;
 
-    const shouldForceRefresh = translationRequest.ForceRefresh === true;
-    const cached = db.getCachedTranslation(
-      token.id,
-      contextHash,
-      translationRequest.TargetLanguage
-    );
-    const shouldQueueTranslation = !cached || shouldForceRefresh;
-
-    if (shouldQueueTranslation) {
-      queueTranslation(cacheKey, async () => {
-        const translation = await createWordAndSentenceTranslation(openAiClient, {
-          word: wordSurface,
-          lemma: token.lemma,
-          partOfSpeech: card.partOfSpeech,
-          sentence: translationRequest.ContextSentence,
-          sourceLanguage: translationRequest.SourceLanguage,
-          targetLanguage: translationRequest.TargetLanguage
-        });
-
-        const normalizedTranslation = translation.Translation.trim() || "I don't know";
-        const usageExamples =
-          normalizedTranslation === "I don't know" ? [] : translation.UsageExamples;
-
-        db.upsertCachedTranslation(
-          token.id,
-          contextHash,
-          translationRequest.ContextSentence,
-          translationRequest.TargetLanguage,
-          normalizedTranslation,
-          JSON.stringify(usageExamples)
-        );
-      });
-    }
-
-    const isPending = inflightTranslations.has(cacheKey) || shouldQueueTranslation;
-    const rawWordTranslation = cached?.wordTranslation ?? "";
-    const usageExamples = (() => {
-      try {
-        const parsed = JSON.parse(cached?.usageExamplesJson ?? "[]") as Array<{
-          Portuguese: string;
-          Translation: string;
-        }>;
-        if (Array.isArray(parsed)) {
-          return parsed;
-        }
-      } catch {
-        // ignore
+    const sentenceDb = getSentenceTranslationsDatabase(translationRequest.BookId);
+    let sentenceRecord = sentenceDb?.findBySpan(token.begin, token.end) ?? null;
+    if (!sentenceRecord && sentenceDb) {
+      const contextSentence = translationRequest.ContextSentence.trim();
+      if (contextSentence) {
+        const sentenceHash = hashSentenceText(contextSentence);
+        sentenceRecord =
+          sentenceDb.findByHash(sentenceHash) ??
+          sentenceDb.findByText(contextSentence) ??
+          null;
       }
-      return [];
-    })();
-    const wordTranslation = rawWordTranslation.includes("<b>")
-      ? rawWordTranslation
-      : rawWordTranslation === "I don't know" || !rawWordTranslation.trim()
-        ? rawWordTranslation
-        : `<b>${rawWordTranslation}</b>`;
-    const safeUsageExamples = rawWordTranslation === "I don't know" ? [] : usageExamples;
-    if (safeUsageExamples.length > 0) {
-      const [first, ...rest] = safeUsageExamples;
-      safeUsageExamples.splice(0, safeUsageExamples.length, {
-        Portuguese: translationRequest.ContextSentence,
-        Translation: first.Translation
-      }, ...rest);
     }
+
+    const sentenceTranslation = sentenceRecord
+      ? {
+          portuguese: boldFirstOccurrence(sentenceRecord.text, wordSurface),
+          russian: sentenceRecord.translation
+        }
+      : undefined;
+
+    const wiktionaryDb = getWiktionaryArticlesDatabase();
+    if (!wiktionaryDb) {
+      const dbPath = resolveWiktionaryArticlesDbPath();
+      throw new Error(`Wiktionary articles database not found: ${dbPath}`);
+    }
+
+    const posCandidates = buildPosCandidates(token.pos ?? "", normalizedWord);
+    const lemmaValue = token.lemma?.trim() ?? "";
+    const preferLemma = (token.pos === "verb" || token.pos === "noun") && lemmaValue;
+    const candidateWords = preferLemma
+      ? [
+          lemmaValue,
+          lemmaValue.toLocaleLowerCase(),
+          normalizedWord,
+          normalizedWord.toLocaleLowerCase(),
+          translationRequest.Word?.trim() ?? "",
+          (translationRequest.Word ?? "").trim().toLocaleLowerCase()
+        ]
+      : [
+          normalizedWord,
+          normalizedWord.toLocaleLowerCase(),
+          lemmaValue,
+          lemmaValue.toLocaleLowerCase(),
+          translationRequest.Word?.trim() ?? "",
+          (translationRequest.Word ?? "").trim().toLocaleLowerCase()
+        ];
+    const candidateKeys = buildCandidateKeys(candidateWords, posCandidates);
+
+    let article: wiktionaryArticle | null = null;
+    for (const key of candidateKeys) {
+      article = wiktionaryDb.findByKey(key);
+      if (article) {
+        break;
+      }
+    }
+
+    const fallbackArticle = article;
+    if (!article || shouldForceOpenAi) {
+      const openAiClient = getOpenAiClient();
+      const partOfSpeech = posCandidates[0] ?? token.pos ?? "";
+      const preferredWord = token.lemma?.trim() || normalizedWord;
+      const generated = await createDictionaryArticle(openAiClient, {
+        word: preferredWord,
+        lemma: token.lemma,
+        partOfSpeech,
+        sentence: translationRequest.ContextSentence,
+        sourceLanguage: translationRequest.SourceLanguage
+      });
+
+      if (generated.translations.length > 0) {
+        const now = Date.now();
+        const articleKey = `${generated.word}-${generated.pos}`;
+        wiktionaryDb.upsertArticle({
+          key: articleKey,
+          word: generated.word,
+          pos: generated.pos,
+          translations: generated.translations,
+          source: "openai",
+          updatedAt: now
+        });
+        article = {
+          word: generated.word,
+          pos: generated.pos,
+          translations: generated.translations,
+          source: "openai",
+          updatedAt: now
+        };
+      } else if (shouldForceOpenAi && fallbackArticle) {
+        article = fallbackArticle;
+      }
+    }
+
+    const usageExamples = buildUsageExamplesFromArticle(article, normalizedWord);
+    const translationSummary = buildTranslationSummary(article);
+
+    const verbFormDetails = db.getVerbForms(token.lemma);
+    const wordCardBase = buildWordCard(token, verbFormDetails.rows, verbFormDetails.isIrregular);
+    const wordCard = sentenceTranslation
+      ? { ...wordCardBase, sentenceTranslation }
+      : wordCardBase;
 
     return context.json({
-      Translation: wordTranslation,
-      PartOfSpeech: card.partOfSpeech,
-      Gender: card.gender,
-      Tense: card.tense,
-      Infinitive: card.infinitive,
-      IsIrregular: card.isIrregular,
-      IsPending: isPending,
-      UsageExamples: safeUsageExamples,
-      VerbForms: card.verbForms
+      TranslationEnglish: translationSummary.english,
+      TranslationRussian: translationSummary.russian,
+      IsPending: false,
+      UsageExamples: usageExamples,
+      WordCard: wordCard
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Translation failed.";

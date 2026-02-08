@@ -24,7 +24,7 @@ export const LoginFormScreen = (): JSX.Element => {
       const session = await login({ email, passwordHash });
       primeAuthSession(session);
       setPassword("");
-      navigate("/reader", { replace: true });
+      navigate("/books", { replace: true });
     } catch (submitError) {
       const message = submitError instanceof Error ? submitError.message : "Login failed.";
       setError(message);

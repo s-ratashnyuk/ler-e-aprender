@@ -9,4 +9,5 @@ export type translationApiRequest = {
   SourceLanguage: string;
   TargetLanguage: string;
   ForceRefresh?: boolean;
+  ForceOpenAI?: boolean;
 };

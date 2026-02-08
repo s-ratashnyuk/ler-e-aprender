@@ -1,21 +1,27 @@
 export type translationApiResponse = {
-  Translation: string;
-  PartOfSpeech: string;
-  Gender: string;
-  Tense: string;
-  Infinitive: string;
-  IsIrregular: boolean;
+  TranslationEnglish: string;
+  TranslationRussian: string;
   IsPending?: boolean;
   UsageExamples: usageExampleApi[];
-  VerbForms: verbFormRowApi[];
+  WordCard?: wordCardApi;
 };
 
 export type usageExampleApi = {
   Portuguese: string;
-  Translation: string;
+  English: string;
+  Russian: string;
 };
 
-export type verbFormRowApi = {
-  Tense: string;
-  Forms: string;
+export type wordCardApi = {
+  partOfSpeech: string;
+  gender: string;
+  number: string;
+  tense: string;
+  infinitive: string;
+  isIrregular: boolean;
+  verbForms: Array<{ Tense: string; Forms: string }>;
+  sentenceTranslation?: {
+    portuguese: string;
+    russian: string;
+  };
 };

@@ -20,6 +20,7 @@ type HandleRefreshClickParams = {
   setPopupState: Dispatch<SetStateAction<popupState>>;
   tokens: textToken[];
   rawText: string;
+  rawTextOffset: number;
 };
 
 export const handleRefreshClick = async ({
@@ -30,7 +31,8 @@ export const handleRefreshClick = async ({
   selectedTokenIndex,
   setPopupState,
   tokens,
-  rawText
+  rawText,
+  rawTextOffset
 }: HandleRefreshClickParams): Promise<void> => {
   if (selectedTokenIndex === null) {
     return;
@@ -44,7 +46,7 @@ export const handleRefreshClick = async ({
   const requestId = requestIdRef.current + 1;
   requestIdRef.current = requestId;
 
-  const context = getSentenceContextAroundToken(rawText, tokens, selectedToken, 10);
+  const context = getSentenceContextAroundToken(rawText, tokens, selectedToken, 10, rawTextOffset);
 
   setPopupState({
     isOpen: true,
@@ -113,16 +115,13 @@ export const handleRefreshClick = async ({
       const entry: translationEntry = {
         id: buildTranslationEntryId(selectedToken.text, context.contextLeft, context.contextRight),
         word: selectedToken.text,
+        tokenStart: selectedToken.startIndex,
+        tokenEnd: selectedToken.endIndex,
         contextLeft: context.contextLeft,
         contextRight: context.contextRight,
         translation: resolved.translation,
-        partOfSpeech: resolved.partOfSpeech,
-        gender: resolved.gender,
-        tense: resolved.tense,
-        infinitive: resolved.infinitive,
-        isIrregular: resolved.isIrregular,
         usageExamples: resolved.usageExamples,
-        verbForms: resolved.verbForms,
+        wordCard: resolved.wordCard,
         timestamp: Date.now()
       };
 

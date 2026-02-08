@@ -1,22 +1,18 @@
 import { createSelector, createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import type { bookEntry } from "../types/bookEntry";
 import type { readerState } from "../types/readerState";
+import type { readingPositionPayload } from "../types/readingPositionPayload";
 import type { readingProgressPayload } from "../types/readingProgressPayload";
 import type { translationPayload } from "../types/translationPayload";
 import type { translationEntry } from "../types/translationEntry";
 import type { translationResponse } from "../types/translationResponse";
 import type { rootState } from "../types/rootState";
 
-const defaultBook: bookEntry = {
-  id: "book-1",
-  title: "A chave da biblioteca",
-  language: "pt-PT"
-};
-
 const initialState: readerState = {
-  activeBookId: defaultBook.id,
-  books: [defaultBook],
+  activeBookId: "",
+  books: [],
   translationsByBook: {},
+  positionByBook: {},
   progressByBook: {}
 };
 
@@ -25,14 +21,9 @@ const normalizeWord = (word: string): string => word.trim().toLocaleLowerCase();
 const mapEntryToResponse = (entry: translationEntry): translationResponse => {
   return {
     translation: entry.translation,
-    partOfSpeech: entry.partOfSpeech,
-    gender: entry.gender ?? "",
-    tense: entry.tense,
-    infinitive: entry.infinitive,
-    isIrregular: entry.isIrregular,
     isPending: false,
     usageExamples: entry.usageExamples,
-    verbForms: entry.verbForms
+    wordCard: entry.wordCard
   };
 };
 
@@ -40,6 +31,13 @@ export const readerSlice = createSlice({
   name: "reader",
   initialState,
   reducers: {
+    setBooks: (state, action: PayloadAction<bookEntry[]>): void => {
+      state.books = action.payload;
+      const hasActive = action.payload.some((book) => book.id === state.activeBookId);
+      if (!hasActive) {
+        state.activeBookId = action.payload[0]?.id ?? "";
+      }
+    },
     setActiveBook: (state, action: PayloadAction<string>): void => {
       state.activeBookId = action.payload;
     },
@@ -65,7 +63,17 @@ export const readerSlice = createSlice({
 
       const translationsForBook = state.translationsByBook[bookId] ?? {};
       const existing = translationsForBook[normalizedWord] ?? [];
-      const existingIndex = existing.findIndex((stored) => stored.id === entry.id);
+      let existingIndex = existing.findIndex((stored) => stored.id === entry.id);
+      if (
+        existingIndex < 0 &&
+        Number.isFinite(entry.tokenStart) &&
+        Number.isFinite(entry.tokenEnd)
+      ) {
+        existingIndex = existing.findIndex(
+          (stored) =>
+            stored.tokenStart === entry.tokenStart && stored.tokenEnd === entry.tokenEnd
+        );
+      }
 
       if (existingIndex >= 0) {
         existing[existingIndex] = entry;
@@ -79,6 +87,10 @@ export const readerSlice = createSlice({
     setReadingProgress: (state, action: PayloadAction<readingProgressPayload>): void => {
       const { bookId, progress } = action.payload;
       state.progressByBook[bookId] = progress;
+    },
+    setReadingPosition: (state, action: PayloadAction<readingPositionPayload>): void => {
+      const { bookId, position } = action.payload;
+      state.positionByBook[bookId] = position;
     }
   }
 });

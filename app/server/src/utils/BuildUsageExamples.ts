@@ -24,10 +24,11 @@ export const boldFirstOccurrence = (sentence: string, phrase: string): string =>
 
 export const buildUsageExamples = (
   sentence: string,
-  sentenceTranslation: string,
+  englishTranslation: string,
+  russianTranslation: string,
   wordSurface: string
 ): usageExample[] => {
-  if (!sentenceTranslation || !sentence) {
+  if (!sentence || !englishTranslation || !russianTranslation) {
     return [];
   }
 
@@ -36,7 +37,8 @@ export const buildUsageExamples = (
   return [
     {
       Portuguese: highlightedSentence,
-      Translation: sentenceTranslation
+      English: englishTranslation,
+      Russian: russianTranslation
     }
   ];
 };

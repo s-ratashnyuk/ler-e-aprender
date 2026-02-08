@@ -16,57 +16,49 @@
     </linearGradient>
   </defs>
 
-  <!-- Background -->
   <rect width="360" height="800" fill="url(#bg)"/>
 
-  <!-- Generic browser window -->
-  <rect x="10" y="10" width="340" height="780" rx="18" fill="#E9E3DA"/>
-  <rect x="16" y="16" width="328" height="56" rx="14" fill="#F7F2EC"/>
-  <circle cx="34" cy="34" r="6" fill="#D9D2C7"/>
-  <circle cx="54" cy="34" r="6" fill="#D9D2C7"/>
-  <circle cx="74" cy="34" r="6" fill="#D9D2C7"/>
-  <rect x="96" y="28" width="228" height="20" rx="10" fill="#EAE3DA"/>
-  <rect x="104" y="32" width="120" height="12" rx="6" fill="#CFC7BB"/>
+  <rect x="16" y="16" width="328" height="768" rx="18" fill="#E9E3DA"/>
+  <rect x="24" y="24" width="312" height="752" rx="22" fill="#FFFDFB" filter="url(#shadow)"/>
 
-  <!-- Sign-up card -->
-  <rect x="16" y="80" width="328" height="690" rx="22" fill="#FFFDFB" filter="url(#shadow)"/>
-
-  <!-- Logo badge -->
   <g filter="url(#soft)">
-    <circle cx="180" cy="158" r="40" fill="url(#badge)"/>
+    <circle cx="180" cy="150" r="44" fill="url(#badge)"/>
   </g>
-  <path d="M150 144 Q164 136 180 144 Q196 136 210 144 L210 176 Q196 184 180 176 Q164 184 150 176 Z" fill="#FFFFFF" stroke="#0F6B5C" stroke-width="2"/>
-  <line x1="180" y1="144" x2="180" y2="176" stroke="#0F6B5C" stroke-width="2"/>
-  <line x1="156" y1="152" x2="174" y2="152" stroke="#0F6B5C" stroke-width="1.5" stroke-linecap="round"/>
-  <line x1="156" y1="160" x2="174" y2="160" stroke="#0F6B5C" stroke-width="1.5" stroke-linecap="round"/>
-  <line x1="156" y1="168" x2="174" y2="168" stroke="#0F6B5C" stroke-width="1.5" stroke-linecap="round"/>
-  <line x1="186" y1="152" x2="204" y2="152" stroke="#0F6B5C" stroke-width="1.5" stroke-linecap="round"/>
-  <line x1="186" y1="160" x2="204" y2="160" stroke="#0F6B5C" stroke-width="1.5" stroke-linecap="round"/>
-  <line x1="186" y1="168" x2="204" y2="168" stroke="#0F6B5C" stroke-width="1.5" stroke-linecap="round"/>
+  <g transform="translate(148 118) scale(0.8)">
+    <path
+      d="M20 30 Q30 24 40 30 Q50 24 60 30 L60 54 Q50 60 40 54 Q30 60 20 54 Z"
+      fill="#FFFFFF"
+      stroke="#0F6B5C"
+      stroke-width="2"
+    />
+    <line x1="40" y1="30" x2="40" y2="54" stroke="#0F6B5C" stroke-width="2"/>
+    <line x1="26" y1="36" x2="36" y2="36" stroke="#0F6B5C" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="26" y1="42" x2="36" y2="42" stroke="#0F6B5C" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="26" y1="48" x2="36" y2="48" stroke="#0F6B5C" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="44" y1="36" x2="54" y2="36" stroke="#0F6B5C" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="44" y1="42" x2="54" y2="42" stroke="#0F6B5C" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="44" y1="48" x2="54" y2="48" stroke="#0F6B5C" stroke-width="1.5" stroke-linecap="round"/>
+  </g>
 
-  <!-- Headline -->
-  <text x="180" y="228" text-anchor="middle" font-family="Noto Serif, Literata, Georgia, serif" font-size="22" fill="#2D2924" font-weight="600">Criar conta</text>
-  <text x="180" y="252" text-anchor="middle" font-family="Noto Sans, Inter, Arial, sans-serif" font-size="13" fill="#6C655D">Comece a ler em minutos</text>
+  <text x="180" y="226" text-anchor="middle" font-family="Literata, Georgia, serif" font-size="24" fill="#2D2924" font-weight="600">Criar conta</text>
+  <text x="180" y="250" text-anchor="middle" font-family="Work Sans, Arial, sans-serif" font-size="13" fill="#6C655D">Comece a ler em minutos</text>
 
-  <!-- Form fields -->
-  <text x="56" y="292" font-family="Noto Sans, Inter, Arial, sans-serif" font-size="12" fill="#6C655D">Email</text>
-  <rect x="56" y="300" width="248" height="46" rx="12" fill="#FFFDFB" stroke="#E6E0D7" stroke-width="2"/>
-  <text x="70" y="330" font-family="Noto Sans, Inter, Arial, sans-serif" font-size="13" fill="#9A9288">seu@email.com</text>
+  <text x="52" y="280" font-family="Work Sans, Arial, sans-serif" font-size="12" fill="#6C655D">Email</text>
+  <rect x="52" y="294" width="256" height="44" rx="12" fill="#FFFDFB" stroke="#E6E0D7" stroke-width="2"/>
+  <text x="66" y="322" font-family="Work Sans, Arial, sans-serif" font-size="14" fill="#9A9288">seu@email.com</text>
 
-  <text x="56" y="368" font-family="Noto Sans, Inter, Arial, sans-serif" font-size="12" fill="#6C655D">Senha</text>
-  <rect x="56" y="376" width="248" height="46" rx="12" fill="#FFFDFB" stroke="#E6E0D7" stroke-width="2"/>
-  <text x="70" y="406" font-family="Noto Sans, Inter, Arial, sans-serif" font-size="18" fill="#9A9288">••••••••</text>
+  <text x="52" y="362" font-family="Work Sans, Arial, sans-serif" font-size="12" fill="#6C655D">Senha</text>
+  <rect x="52" y="376" width="256" height="44" rx="12" fill="#FFFDFB" stroke="#E6E0D7" stroke-width="2"/>
+  <text x="66" y="404" font-family="Work Sans, Arial, sans-serif" font-size="18" fill="#9A9288">********</text>
 
-  <text x="56" y="444" font-family="Noto Sans, Inter, Arial, sans-serif" font-size="12" fill="#6C655D">Confirmar senha</text>
-  <rect x="56" y="452" width="248" height="46" rx="12" fill="#FFFDFB" stroke="#E6E0D7" stroke-width="2"/>
-  <text x="70" y="482" font-family="Noto Sans, Inter, Arial, sans-serif" font-size="18" fill="#9A9288">••••••••</text>
+  <text x="52" y="444" font-family="Work Sans, Arial, sans-serif" font-size="12" fill="#6C655D">Confirmar senha</text>
+  <rect x="52" y="458" width="256" height="44" rx="12" fill="#FFFDFB" stroke="#E6E0D7" stroke-width="2"/>
+  <text x="66" y="486" font-family="Work Sans, Arial, sans-serif" font-size="18" fill="#9A9288">********</text>
 
-  <!-- Primary button -->
   <g filter="url(#soft)">
-    <rect x="56" y="528" width="248" height="48" rx="14" fill="#0F6B5C"/>
+    <rect x="52" y="516" width="256" height="44" rx="14" fill="#0F6B5C"/>
   </g>
-  <text x="180" y="558" text-anchor="middle" font-family="Noto Sans, Inter, Arial, sans-serif" font-size="16" fill="#FFFFFF" font-weight="600">Criar conta</text>
+  <text x="180" y="544" text-anchor="middle" font-family="Work Sans, Arial, sans-serif" font-size="15" fill="#FFFFFF" font-weight="600">Criar conta</text>
 
-  <!-- Helper link -->
-  <text x="180" y="598" text-anchor="middle" font-family="Noto Sans, Inter, Arial, sans-serif" font-size="12" fill="#8A8278">Ja tem conta? Entrar</text>
+  <text x="180" y="596" text-anchor="middle" font-family="Work Sans, Arial, sans-serif" font-size="12" fill="#8A8278">Ja tem conta? Entrar</text>
 </svg>
